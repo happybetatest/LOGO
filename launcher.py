@@ -230,7 +230,7 @@ class LauncherWindow(QMainWindow):
         self.worker = None
         self.license_worker = None
 
-        QTimer.singleShot(100, self.check_saved_license)
+        QTimer.singleShot(100, self.start_update)
 
     def copy_hwid(self):
         clipboard = QApplication.clipboard()
