@@ -1,0 +1,108 @@
+name: Build and release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - version.json
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Build applications
+        run: |
+          pyinstaller --noconfirm macro_bootstrap.spec
+          pyinstaller --noconfirm macro_bootstrap_beta.spec
+          pyinstaller --noconfirm launcher.spec
+          pyinstaller --noconfirm launcher_beta.spec
+
+      - name: Create portable Python runtime
+        shell: pwsh
+        run: |
+          $pythonVersion = "3.12.10"
+          $runtime = "portable-runtime"
+          Invoke-WebRequest "https://www.python.org/ftp/python/$pythonVersion/python-$pythonVersion-embed-amd64.zip" -OutFile python-embed.zip
+          Expand-Archive python-embed.zip $runtime
+          New-Item -ItemType Directory -Force "$runtime\Lib\site-packages" | Out-Null
+          @(
+            "python312.zip"
+            "."
+            "Lib/site-packages"
+            "import site"
+          ) | Set-Content "$runtime\python312._pth" -Encoding ascii
+          python -m pip install --target "$runtime\Lib\site-packages" PySide6 certifi keyboard numpy opencv-python pywin32 aiohttp
+
+      - name: Create update package and manifest
+        id: package
+        shell: pwsh
+        run: |
+          $version = (Get-Content version.json -Raw | ConvertFrom-Json).version
+          
+          # 1. Stable Package
+          New-Item -ItemType Directory -Force release-package | Out-Null
+          Copy-Item dist\LOGO-Macro.exe release-package\
+          Copy-Item config.json release-package\
+          Copy-Item templates release-package\templates -Recurse
+          New-Item -ItemType Directory -Force release-package\templates\_app | Out-Null
+          Copy-Item gui_macro.py release-package\templates\_app\
+          Copy-Item keyauth_helper.py release-package\templates\_app\
+          Copy-Item discord_remote.py release-package\templates\_app\
+          Copy-Item loading_assets.py release-package\templates\_app\
+          Copy-Item portable-runtime release-package\templates\_runtime -Recurse
+          Compress-Archive -Path release-package\* -DestinationPath dist\LOGO-Package.zip -Force
+          $hash = (Get-FileHash dist\LOGO-Package.zip -Algorithm SHA256).Hash.ToLower()
+          @{
+            version = $version
+            package = "LOGO-Package.zip"
+            package_sha256 = $hash
+          } | ConvertTo-Json | Set-Content dist\release-manifest.json -Encoding utf8
+
+          # 2. Beta Package
+          New-Item -ItemType Directory -Force beta-package | Out-Null
+          Copy-Item dist\LOGO-Beta-Macro.exe beta-package\
+          Copy-Item config.json beta-package\
+          Copy-Item templates beta-package\templates -Recurse
+          New-Item -ItemType Directory -Force beta-package\templates\_app | Out-Null
+          Copy-Item gui_macro.py beta-package\templates\_app\
+          Copy-Item keyauth_helper.py beta-package\templates\_app\
+          Copy-Item discord_remote.py beta-package\templates\_app\
+          Copy-Item loading_assets.py beta-package\templates\_app\
+          Copy-Item portable-runtime beta-package\templates\_runtime -Recurse
+          Compress-Archive -Path beta-package\* -DestinationPath dist\LOGO-Beta-Package.zip -Force
+          $betaHash = (Get-FileHash dist\LOGO-Beta-Package.zip -Algorithm SHA256).Hash.ToLower()
+          @{
+            version = $version
+            package = "LOGO-Beta-Package.zip"
+            package_sha256 = $betaHash
+          } | ConvertTo-Json | Set-Content dist\beta-manifest.json -Encoding utf8
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.package.outputs.version }}
+          name: FiveM Farming v${{ steps.package.outputs.version }}
+          generate_release_notes: true
+          files: |
+            dist/LOGO-Launcher.exe
+            dist/LOGO-Beta-Launcher.exe
+            dist/LOGO-Package.zip
+            dist/LOGO-Beta-Package.zip
+            dist/release-manifest.json
+            dist/beta-manifest.json
