@@ -3107,13 +3107,26 @@ class MacroWorker(QThread):
                 self.ensure_inventory_open("[Discord Remote]")
                 time.sleep(0.8)
 
-            bg_img = self.capture_background(self.hwnd)
-            if bg_img is None:
-                return {"success": False, "message": "จับภาพ FiveM ไม่สำเร็จ"}
+            # ค้นหาน้ำผึ้งแล้วคลิกขวาเพื่อเปิดเมนู Discard
+            ore_res = self.find_image(bg_img, "templates/honey.png", 0.65)
+            if not ore_res or ore_res[0] is None:
+                ore_res = self.find_image(bg_img, "templates/gold_ore.png", 0.65)
+            if ore_res and ore_res[0] is not None:
+                self.bg_right_click(self.hwnd, ore_res[0], ore_res[1])
+                time.sleep(0.5)
+                bg_dest = self.capture_background(self.hwnd)
+                if bg_dest is not None:
+                    dest_res = self.find_image(bg_dest, TEMPLATES["destroy"], 0.60)
+                    if dest_res and dest_res[0] is not None:
+                        self.bg_click(self.hwnd, dest_res[0], dest_res[1])
+                        time.sleep(0.5)
+                        bg_img = self.capture_background(self.hwnd)
+                        if bg_img is None:
+                            return {"success": False, "message": "จับภาพ FiveM หลังกดปุ่มทิ้งไม่สำเร็จ"}
 
             h_img, w_img, _ = bg_img.shape
             all_x, all_y = self.get_region_ranges(
-                self.all_search_region, w_img, h_img, (0.35, 0.65), (0.35, 0.75)
+                self.all_search_region, w_img, h_img, (0.20, 0.80), (0.20, 0.85)
             )
             all_result = self.find_image(
                 bg_img,
@@ -3122,6 +3135,8 @@ class MacroWorker(QThread):
                 x_range=all_x,
                 y_range=all_y,
             )
+            if not all_result or all_result[0] is None:
+                all_result = self.find_image(bg_img, TEMPLATES["all"], 0.60)
             if all_result and all_result[0] is not None:
                 x_all, y_all, _ = all_result
                 self.bg_click(self.hwnd, x_all, y_all)
@@ -3143,6 +3158,8 @@ class MacroWorker(QThread):
                         x_range=conf_x,
                         y_range=conf_y,
                     )
+                    if not conf_res or conf_res[0] is None:
+                        conf_res = self.find_image(bg_conf, TEMPLATES["confirm"], 0.60)
                     if conf_res and conf_res[0] is not None:
                         x_c, y_c, _ = conf_res
                         self.bg_click(self.hwnd, x_c, y_c)
