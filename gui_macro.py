@@ -1472,13 +1472,13 @@ class MacroWorker(QThread):
 
     def send_diamond_full_webhook(self):
         if not self.discord_webhook_url:
-            self.log_signal.emit("[Discord] เพชรเต็ม 40/40 แต่ยังไม่ได้ตั้งค่า Webhook")
+            self.log_signal.emit("[Discord] เพชรเต็ม 60/60 แต่ยังไม่ได้ตั้งค่า Webhook")
             return
         machine_name = os.environ.get("COMPUTERNAME", "Unknown PC")
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         payload = json.dumps({
             "username": "FiveM Farming",
-            "content": f"💎 เพชรเต็ม 40/40\\nเครื่อง: {machine_name}\\nเวลา: {timestamp}"
+            "content": f"💎 เพชรเต็ม 60/60\\nเครื่อง: {machine_name}\\nเวลา: {timestamp}"
         }, ensure_ascii=False).encode("utf-8")
         request = urllib.request.Request(
             self.discord_webhook_url,
@@ -1495,7 +1495,7 @@ class MacroWorker(QThread):
             ) as response:
                 if response.status not in (200, 204):
                     raise RuntimeError(f"Discord HTTP {response.status}")
-            self.log_signal.emit("[Discord] แจ้งเตือนเพชรเต็ม 40/40 สำเร็จ")
+            self.log_signal.emit("[Discord] แจ้งเตือนเพชรเต็ม 60/60 สำเร็จ")
         except Exception as error:
             self.log_signal.emit(f"[Discord] ส่งแจ้งเตือนไม่สำเร็จ: {type(error).__name__}: {error}")
 
@@ -1923,15 +1923,15 @@ class MacroWorker(QThread):
             sx, sy = self.get_template_scale(ore_path, w_img, h_img)
 
             # อ่านเลขหลักแรกจากภาพจริง เพื่อให้ 30-40 ผ่านได้ทั้งหมด
-            live_x0 = max(0, ore_x)
+            live_x0 = max(0, ore_x + int(round(4 * sx)))
             live_x1 = min(
-                w_img, ore_x + max(24, int(round(45 * sx)))
+                w_img, ore_x + max(24, int(round(55 * sx)))
             )
             live_y0 = max(
                 0, ore_y - max(20, int(round(55 * sy)))
             )
             live_y1 = min(
-                h_img, ore_y - max(5, int(round(15 * sy)))
+                h_img, ore_y - max(5, int(round(25 * sy)))
             )
             live_strip = bg_img[live_y0:live_y1, live_x0:live_x1]
             if live_strip.size:
@@ -2073,7 +2073,7 @@ class MacroWorker(QThread):
 
     def choose_next_gold_target(self):
         choices = [
-            value for value in range(15, 31)
+            value for value in range(25, 51)
             if self.previous_gold_discard_target is None
             or abs(value - self.previous_gold_discard_target) > 3
         ]
@@ -2089,7 +2089,7 @@ class MacroWorker(QThread):
         self.gold_disposal_cooldown_until = time.time() + 30.0
         self.log_signal.emit(
             f"[ระบบน้ำผึ้ง] เป้าหมายทิ้งรอบใหม่: "
-            f"{self.gold_discard_target}/40"
+            f"{self.gold_discard_target}/60"
         )
 
     def observe_gold_count_change(self, bg_img, ore_x, ore_y):
@@ -2102,15 +2102,15 @@ class MacroWorker(QThread):
                 "templates/gold_ore.png"
             )
             sx, sy = self.get_template_scale(ore_path, w_img, h_img)
-            x0 = max(0, ore_x)
+            x0 = max(0, ore_x + int(round(4 * sx)))
             x1 = min(
-                w_img, ore_x + max(24, int(round(45 * sx)))
+                w_img, ore_x + max(24, int(round(55 * sx)))
             )
             y0 = max(
                 0, ore_y - max(20, int(round(55 * sy)))
             )
             y1 = min(
-                h_img, ore_y - max(5, int(round(15 * sy)))
+                h_img, ore_y - max(5, int(round(25 * sy)))
             )
             strip = bg_img[y0:y1, x0:x1]
             if strip.size == 0:
@@ -2650,7 +2650,7 @@ class MacroWorker(QThread):
 
             # For this font, a leading 2 has its lower-middle stroke on the
             # left.  A leading 3 (and 4) has that stroke on the right.  This
-            # rejects 10/40 and 20/40 while accepting 30/40 through 40/40.
+            # rejects 10/40 and 20/40 while accepting 30/40 through 60/60.
             gh, gw = first_glyph.shape
             lower_y0 = max(0, int(round(gh * 0.52)))
             lower_y1 = max(lower_y0 + 1, int(round(gh * 0.86)))
@@ -2973,7 +2973,7 @@ class MacroWorker(QThread):
             )
 
     def check_and_run_no_car_full_mode(self):
-        """Stop and notify once after confirming the exact 40/40 capture."""
+        """Stop and notify once after confirming the exact 60/60 capture."""
         bg_img = self.capture_background(self.hwnd)
         if bg_img is None:
             return
@@ -3000,15 +3000,15 @@ class MacroWorker(QThread):
             slot_img = bg_img[y0:y1, x0:x1]
             self.diamond_full_streak += 1
             confirmed = self.diamond_full_streak >= 2
-            status = "พบ 40/40 กำลังยืนยันภาพซ้ำ"
+            status = "พบ 60/60 กำลังยืนยันภาพซ้ำ"
             if confirmed:
-                status = "เพชรเต็ม 40/40 — หยุดฟาร์มแล้ว"
+                status = "เพชรเต็ม 60/60 — หยุดฟาร์มแล้ว"
             self.diamond_preview_signal.emit(slot_img, val, confirmed, status)
             if confirmed and not self.diamond_full_notified:
                 self.diamond_full_notified = True
                 self.is_running = False
                 self.running_state_signal.emit(False)
-                self.log_signal.emit("[ระบบเพชร] ตรวจพบ 40/40 หยุดฟาร์มโหมดไม่มีรถ")
+                self.log_signal.emit("[ระบบเพชร] ตรวจพบ 60/60 หยุดฟาร์มโหมดไม่มีรถ")
                 self.send_diamond_full_webhook()
         else:
             self.diamond_full_streak = 0
@@ -3016,7 +3016,7 @@ class MacroWorker(QThread):
             val = full_result[2] if full_result else 0.0
             self.diamond_preview_signal.emit(
                 np.zeros((10, 10, 3), dtype=np.uint8),
-                val, False, "โหมดไม่มีรถ: รอเพชรเต็ม 40/40"
+                val, False, "โหมดไม่มีรถ: รอเพชรเต็ม 60/60"
             )
 
     def execute_remote_check_bag(self):
@@ -3042,7 +3042,7 @@ class MacroWorker(QThread):
                     "gold_info": "ไม่ทราบ",
                 }
 
-            gold_info = f"เป้าหมายทิ้ง: {self.gold_discard_target}/40 (ประเมินทองปัจจุบัน: {self.gold_estimated_count})"
+            gold_info = f"เป้าหมายทิ้ง: {self.gold_discard_target}/60 (ประเมินทองปัจจุบัน: {self.gold_estimated_count})"
             status_info = "🟢 กำลังฟาร์ม" if self.is_running else "🔴 หยุดพัก"
 
             temp_path = get_writable_path("discord_bag_capture.png")
@@ -3184,7 +3184,7 @@ class MacroWorker(QThread):
                 "success": True,
                 "message": (
                     f"ทิ้งน้ำผึ้งสำเร็จและเริ่มฟาร์มต่อเรียบร้อย! "
-                    f"(เป้าหมายรอบใหม่: {self.gold_discard_target}/40)"
+                    f"(เป้าหมายรอบใหม่: {self.gold_discard_target}/60)"
                 ),
                 "image_path": temp_path if os.path.isfile(temp_path) else None,
             }
@@ -4088,7 +4088,7 @@ class MacroWorker(QThread):
                         if can_dispose_now
                         else None
                     )
-                    # At 40/40 the saved 30/40 template can miss its strict
+                    # At 60/60 the saved 30/40 template can miss its strict
                     # leading-digit sub-check by a fraction.  During idle
                     # recovery, accept a strong count-template match only when
                     # it is physically beside the already-confirmed gold icon.
@@ -4123,7 +4123,7 @@ class MacroWorker(QThread):
                                     np.zeros((10, 10, 3), dtype=np.uint8),
                                 )
                                 self.log_signal.emit(
-                                    "[ระบบน้ำผึ้ง] ยืนยันทองเต็ม 40/40 จากภาพสำรอง กำลังทิ้งน้ำผึ้ง"
+                                    "[ระบบน้ำผึ้ง] ยืนยันทองเต็ม 60/60 จากภาพสำรอง กำลังทิ้งน้ำผึ้ง"
                                 )
                     if can_dispose_now and (
                         count_result or random_target_reached
@@ -4140,7 +4140,7 @@ class MacroWorker(QThread):
                             )
                             self.log_signal.emit(
                                 f"[ระบบน้ำผึ้ง] ถึงเป้าหมายสุ่ม "
-                                f"{self.gold_discard_target}/40 "
+                                f"{self.gold_discard_target}/60 "
                                 "กำลังทิ้งน้ำผึ้ง"
                             )
                         count_x, count_y, count_score, count_crop = count_result
@@ -4763,7 +4763,7 @@ class MainWindow(QMainWindow):
         self.auto_store_cb.toggled.connect(self.on_auto_store_toggled)
         self.diamond_mode_combo = QComboBox()
         self.diamond_mode_combo.addItem("มีรถ: เก็บเพชรทุก 40 นาที", "car_timer")
-        self.diamond_mode_combo.addItem("ไม่มีรถ: เต็ม 40/40 แล้วหยุด + แจ้ง Discord", "no_car_full")
+        self.diamond_mode_combo.addItem("ไม่มีรถ: เต็ม 60/60 แล้วหยุด + แจ้ง Discord", "no_car_full")
         mode_index = self.diamond_mode_combo.findData(self.diamond_mode)
         self.diamond_mode_combo.setCurrentIndex(max(0, mode_index))
         self.diamond_mode_combo.currentIndexChanged.connect(self.on_diamond_mode_changed)
@@ -5937,7 +5937,7 @@ class MainWindow(QMainWindow):
                 diamond_mode = (
                     "มีรถ (เก็บทุก 40 นาที)"
                     if self.diamond_mode == "car_timer"
-                    else "ไม่มีรถ (หยุดเมื่อ 40/40)"
+                    else "ไม่มีรถ (หยุดเมื่อ 60/60)"
                 )
                 food_status = (
                     "เปิดใช้งาน" if self.auto_feed_enabled else "ปิดใช้งาน"
