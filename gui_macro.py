@@ -1303,6 +1303,12 @@ class MacroWorker(QThread):
         self.is_running = False
         self.is_exiting = False
         self.hwnd = None
+                # Load honey digit templates for OCR
+        self.honey_digit_templates = {}
+        for d in range(10):
+            dp = self.resolve_template_path(f"templates/digit_{d}.png")
+            if os.path.isfile(dp):
+                self.honey_digit_templates[d] = cv2.imread(dp, 0)
         self.thresholds = {"gold": 0.84, "destroy": 0.75, "all": 0.65, "confirm": 0.65}
         self.delays = {"gold": 0.8, "destroy": 0.8, "all": 0.8, "confirm": 8.0}
         self.hud_region = None
@@ -1865,215 +1871,117 @@ class MacroWorker(QThread):
         except Exception:
             return None
 
-    def find_gold_count(self, bg_img, ore_x, ore_y, threshold):
-        """Require a numerator of 30 or 40 directly above the detected gold."""
+    def parse_honey_count(self, strip):
+        """Parse integer count from X/60 or XX/60 strip above Honey icon."""
         try:
-            template_path = self.resolve_template_path("templates/gold_text.png")
-            template = cv2.imread(template_path)
-            if template is None:
+            if strip is None or strip.size == 0:
+                return None
+            if not getattr(self, "honey_digit_templates", None):
+                self.honey_digit_templates = {}
+                for d in range(10):
+                    dp = self.resolve_template_path(f"templates/digit_{d}.png")
+                    if os.path.isfile(dp):
+                        self.honey_digit_templates[d] = cv2.imread(dp, 0)
+
+            gray = cv2.cvtColor(strip, cv2.COLOR_BGR2GRAY) if len(strip.shape) == 3 else strip
+            _, th = cv2.threshold(gray, 215, 255, cv2.THRESH_BINARY)
+            col_sum = np.sum(th > 0, axis=0)
+            active = col_sum > 1
+            groups = []
+            in_g, start = False, 0
+            for i, a in enumerate(active):
+                if a and not in_g:
+                    start = i
+                    in_g = True
+                elif not a and in_g:
+                    groups.append((start, i))
+                    in_g = False
+            if in_g:
+                groups.append((start, len(active)))
+            if len(groups) < 4:
                 return None
 
-            # Remove the ore/background from the saved crop. More importantly,
-            # keep only the first two glyph groups ("30"), not "/40". The
-            # denominator is identical at 10/40, 20/40 and 30/40 and used to
-            # produce false positives when it dominated the match score.
-            upper = template[:max(3, int(template.shape[0] * 0.48)), :]
-            upper_gray = cv2.cvtColor(upper, cv2.COLOR_BGR2GRAY)
-            # The item-slot border is mid-gray; 120 isolates the white count
-            # glyphs without pulling the whole crop into the template.
-            _, bright = cv2.threshold(upper_gray, 120, 255, cv2.THRESH_BINARY)
-            component_count, _, stats, _ = cv2.connectedComponentsWithStats(bright, 8)
-            components = []
-            for index in range(1, component_count):
-                cx, cy, cw, ch, area = stats[index]
-                if area >= 6 and ch >= 3:
-                    components.append((int(cx), int(cy), int(cw), int(ch), int(area)))
-            components.sort(key=lambda item: item[0])
-            if len(components) < 2:
-                return None
+            def get_crop(g):
+                c = th[:, g[0]:g[1]]
+                r_sum = np.sum(c > 0, axis=1)
+                active_r = np.where(r_sum > 0)[0]
+                if len(active_r) == 0:
+                    return None
+                return c[active_r[0]:active_r[-1] + 1, :]
 
-            first_two = components[:2]
-            first_digit_x, first_digit_y, first_digit_w, first_digit_h, _ = first_two[0]
-            first_digit_template = upper[
-                first_digit_y:first_digit_y + first_digit_h,
-                first_digit_x:first_digit_x + first_digit_w
-            ]
-            last_x, last_y, last_w, last_h, _ = components[-1]
-            four_w = min(
-                last_w, max(first_digit_w + 1, last_w // 2)
-            )
-            fourth_digit_template = upper[
-                last_y:last_y + last_h,
-                last_x:last_x + four_w
-            ]
-            tx = min(item[0] for item in first_two)
-            ty = min(item[1] for item in first_two)
-            tx_end = max(item[0] + item[2] for item in first_two)
-            ty_end = max(item[1] + item[3] for item in first_two)
-            tw, th = tx_end - tx, ty_end - ty
-            pad = 2
-            tx0, ty0 = max(0, tx - pad), max(0, ty - pad)
-            tx1, ty1 = min(upper.shape[1], tx + tw + pad), min(upper.shape[0], ty + th + pad)
-            numerator_template = upper[ty0:ty1, tx0:tx1]
-            if numerator_template.size == 0:
-                return None
+            def match_digit(c_d):
+                if c_d is None or c_d.size == 0:
+                    return None
+                h, w = c_d.shape[:2]
+                if w <= 2:
+                    return 1
+                best_d, best_score = None, 999999
+                for val, tpl in self.honey_digit_templates.items():
+                    tpl_resized = cv2.resize(tpl, (w, h))
+                    diff = np.sum(np.abs(c_d.astype(int) - tpl_resized.astype(int)))
+                    if diff < best_score:
+                        best_score = diff
+                        best_d = val
+                return best_d
 
-            h_img, w_img = bg_img.shape[:2]
-            ore_path = self.resolve_template_path("templates/gold_ore.png")
-            sx, sy = self.get_template_scale(ore_path, w_img, h_img)
-
-            # อ่านเลขหลักแรกจากภาพจริง เพื่อให้ 30-40 ผ่านได้ทั้งหมด
-            live_x0 = max(0, ore_x + int(round(4 * sx)))
-            live_x1 = min(
-                w_img, ore_x + max(24, int(round(55 * sx)))
-            )
-            live_y0 = max(
-                0, ore_y - max(20, int(round(55 * sy)))
-            )
-            live_y1 = min(
-                h_img, ore_y - max(5, int(round(25 * sy)))
-            )
-            live_strip = bg_img[live_y0:live_y1, live_x0:live_x1]
-            if live_strip.size:
-                live_gray = cv2.cvtColor(live_strip, cv2.COLOR_BGR2GRAY)
-                _, live_binary = cv2.threshold(
-                    live_gray, 120, 255, cv2.THRESH_BINARY
-                )
-                live_count, _, live_stats, _ = (
-                    cv2.connectedComponentsWithStats(live_binary, 8)
-                )
-                live_glyphs = []
-                min_h = max(3, int(round(4 * sy)))
-                max_h = max(min_h + 1, int(round(12 * sy)))
-                for index in range(1, live_count):
-                    gx, gy, gw, gh, area = map(
-                        int, live_stats[index]
-                    )
-                    if (
-                        area >= 5
-                        and min_h <= gh <= max_h
-                        and gw >= 2
-                    ):
-                        live_glyphs.append((gx, gy, gw, gh, area))
-                live_glyphs.sort(key=lambda item: item[0])
-                if len(live_glyphs) >= 5:
-                    first_live = live_glyphs[0]
-                    row_glyphs = [
-                        item for item in live_glyphs
-                        if abs(item[1] - first_live[1])
-                        <= max(2, int(round(2 * sy)))
-                    ]
-                    if len(row_glyphs) >= 5:
-                        gx, gy, gw, gh, _ = first_live
-                        live_digit = live_gray[
-                            gy:gy + gh, gx:gx + gw
-                        ]
-                        digit_scores = []
-                        for digit_template in (
-                            first_digit_template,
-                            fourth_digit_template
-                        ):
-                            scaled_digit = cv2.resize(
-                                digit_template,
-                                (gw, gh),
-                                interpolation=(
-                                    cv2.INTER_AREA
-                                    if (
-                                        gw < digit_template.shape[1]
-                                        or gh < digit_template.shape[0]
-                                    )
-                                    else cv2.INTER_CUBIC
-                                )
-                            )
-                            scaled_gray = cv2.cvtColor(
-                                scaled_digit, cv2.COLOR_BGR2GRAY
-                            )
-                            score_result = cv2.matchTemplate(
-                                live_digit,
-                                scaled_gray,
-                                cv2.TM_CCOEFF_NORMED
-                            )
-                            digit_scores.append(
-                                cv2.minMaxLoc(score_result)[1]
-                            )
-                        leading_score = max(digit_scores)
-                        if leading_score >= 0.72:
-                            return (
-                                live_x0 + gx + gw // 2,
-                                live_y0 + gy + gh // 2,
-                                leading_score,
-                                live_strip
-                            )
-
-            # Search only the count area of this inventory slot. The old wide
-            # rectangle could accidentally use a "30" from a neighbouring item.
-            x0 = max(0, ore_x - max(4, int(round(10 * sx))))
-            x1 = min(w_img, ore_x + max(12, int(round(50 * sx))))
-            y0 = max(0, ore_y - max(12, int(round(55 * sy))))
-            y1 = min(h_img, ore_y + max(3, int(round(8 * sy))))
-            search_img = bg_img[y0:y1, x0:x1]
-            if search_img.size == 0:
-                return None
-
-            scale_x, scale_y = self.get_template_scale(template_path, w_img, h_img)
-            # Text rasterization changes a little more than icons when scaled,
-            # so include a wider band around the expected size.
-            scale_offsets = (1.0, 0.90, 1.10, 0.82, 1.18, 0.76, 1.24)
-            search_gray = cv2.cvtColor(search_img, cv2.COLOR_BGR2GRAY)
-            best_val, best_loc, best_size = -1.0, None, None
-            seen_sizes = set()
-            for nearby in scale_offsets:
-                new_w = max(4, int(round(numerator_template.shape[1] * scale_x * nearby)))
-                new_h = max(3, int(round(numerator_template.shape[0] * scale_y * nearby)))
-                if (new_w, new_h) in seen_sizes:
-                    continue
-                seen_sizes.add((new_w, new_h))
-                if search_gray.shape[0] < new_h or search_gray.shape[1] < new_w:
-                    continue
-                interpolation = cv2.INTER_AREA if new_w < numerator_template.shape[1] or new_h < numerator_template.shape[0] else cv2.INTER_CUBIC
-                scaled = cv2.resize(numerator_template, (new_w, new_h), interpolation=interpolation)
-                scaled_gray = cv2.cvtColor(scaled, cv2.COLOR_BGR2GRAY)
-                result = cv2.matchTemplate(search_gray, scaled_gray, cv2.TM_CCOEFF_NORMED)
-                _, score, _, location = cv2.minMaxLoc(result)
-                if score > best_val:
-                    best_val, best_loc, best_size = score, location, (new_w, new_h)
-
-            if best_loc is None:
-                return (None, None, 0.0, search_img)
-
-            # "20" can still resemble "30" when both tiny digits are matched
-            # together because the trailing zero is identical. Verify the first
-            # glyph independently: a 3 must match the saved 3 shape, not a 2.
-            matched_scale_x = best_size[0] / float(numerator_template.shape[1])
-            matched_scale_y = best_size[1] / float(numerator_template.shape[0])
-            digit_w = max(2, int(round(first_digit_template.shape[1] * matched_scale_x)))
-            digit_h = max(3, int(round(first_digit_template.shape[0] * matched_scale_y)))
-            digit_offset_x = int(round((first_digit_x - tx0) * matched_scale_x))
-            digit_offset_y = int(round((first_digit_y - ty0) * matched_scale_y))
-            digit_x0 = best_loc[0] + digit_offset_x
-            digit_y0 = best_loc[1] + digit_offset_y
-            digit_crop = search_gray[digit_y0:digit_y0 + digit_h, digit_x0:digit_x0 + digit_w]
-            first_digit_score = -1.0
-            if digit_crop.shape == (digit_h, digit_w):
-                digit_interpolation = cv2.INTER_AREA if digit_w < first_digit_template.shape[1] or digit_h < first_digit_template.shape[0] else cv2.INTER_CUBIC
-                scaled_digit = cv2.resize(first_digit_template, (digit_w, digit_h), interpolation=digit_interpolation)
-                scaled_digit_gray = cv2.cvtColor(scaled_digit, cv2.COLOR_BGR2GRAY)
-                if float(np.std(scaled_digit_gray)) > 0.5:
-                    digit_result = cv2.matchTemplate(digit_crop, scaled_digit_gray, cv2.TM_CCOEFF_NORMED)
-                    _, first_digit_score, _, _ = cv2.minMaxLoc(digit_result)
-
-            tw, th = best_size
-            center_x = x0 + best_loc[0] + tw // 2
-            center_y = y0 + best_loc[1] + th // 2
-            if best_val >= threshold and first_digit_score >= 0.72:
-                return (center_x, center_y, best_val, search_img)
-            return (None, None, max(0.0, best_val), search_img)
+            if len(groups) == 4:
+                return match_digit(get_crop(groups[0]))
+            elif len(groups) >= 5:
+                d0 = match_digit(get_crop(groups[0]))
+                d1 = match_digit(get_crop(groups[1]))
+                if d0 is not None and d1 is not None:
+                    return d0 * 10 + d1
+                elif d0 is not None:
+                    return d0 * 10
+            return None
         except Exception:
             return None
 
+    def find_gold_count(self, bg_img, ore_x, ore_y, threshold):
+        """Check if honey count reached the discard target."""
+        try:
+            h_img, w_img = bg_img.shape[:2]
+            ore_path = self.resolve_template_path("templates/gold_ore.png")
+            sx, sy = self.get_template_scale(ore_path, w_img, h_img)
+            x0 = max(0, ore_x + int(round(4 * sx)))
+            x1 = min(w_img, ore_x + max(24, int(round(55 * sx))))
+            y0 = max(0, ore_y - max(20, int(round(55 * sy))))
+            y1 = min(h_img, ore_y - max(5, int(round(25 * sy))))
+            strip = bg_img[y0:y1, x0:x1]
+            count = self.parse_honey_count(strip)
+            if count is not None:
+                if count >= (self.gold_discard_target or 20):
+                    return (ore_x, ore_y, 1.0, strip)
+            return None
+        except Exception:
+            return None
+
+    def observe_gold_count_change(self, bg_img, ore_x, ore_y):
+        """Observe live honey count changes and update estimated count."""
+        try:
+            h_img, w_img = bg_img.shape[:2]
+            ore_path = self.resolve_template_path("templates/gold_ore.png")
+            sx, sy = self.get_template_scale(ore_path, w_img, h_img)
+            x0 = max(0, ore_x + int(round(4 * sx)))
+            x1 = min(w_img, ore_x + max(24, int(round(55 * sx))))
+            y0 = max(0, ore_y - max(20, int(round(55 * sy))))
+            y1 = min(h_img, ore_y - max(5, int(round(25 * sy))))
+            strip = bg_img[y0:y1, x0:x1]
+            count = self.parse_honey_count(strip)
+            if count is not None:
+                if count != self.gold_estimated_count:
+                    self.gold_estimated_count = count
+                    self.log_signal.emit(
+                        f"[ระบบน้ำผึ้ง] ตรวจพบน้ำผึ้ง: {count}/60 (เป้าหมายทิ้ง: {self.gold_discard_target}/60)"
+                    )
+                return self.gold_estimated_count
+            return self.gold_estimated_count
+        except Exception:
+            return self.gold_estimated_count
+
     def choose_next_gold_target(self):
         choices = [
-            value for value in range(25, 51)
+            value for value in range(20, 41)
             if self.previous_gold_discard_target is None
             or abs(value - self.previous_gold_discard_target) > 3
         ]
@@ -4080,6 +3988,7 @@ class MacroWorker(QThread):
                         estimated_count is not None
                         and self.gold_discard_target is not None
                         and estimated_count >= self.gold_discard_target
+                        and estimated_count >= 20
                     )
                     count_result = (
                         self.find_gold_count(
