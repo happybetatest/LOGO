@@ -3917,6 +3917,8 @@ class MacroWorker(QThread):
                         x_range=dest_x,
                         y_range=dest_y
                     )
+                    if not destroy_result or destroy_result[0] is None:
+                        destroy_result = self.find_image(bg_img, TEMPLATES["destroy"], 0.60)
                     if (
                         destroy_result
                         and destroy_result[0] is not None
@@ -3936,8 +3938,8 @@ class MacroWorker(QThread):
                         self.all_search_region,
                         w_img,
                         h_img,
-                        (0.35, 0.65),
-                        (0.35, 0.75)
+                        (0.20, 0.80),
+                        (0.20, 0.85)
                     )
                     all_result = self.find_image(
                         bg_img,
@@ -3946,6 +3948,8 @@ class MacroWorker(QThread):
                         x_range=all_x,
                         y_range=all_y
                     )
+                    if not all_result or all_result[0] is None:
+                        all_result = self.find_image(bg_img, TEMPLATES["all"], 0.60)
                     if all_result and all_result[0] is not None:
                         x_all, y_all, val_all = all_result
                         match_status["all"] = (True, val_all)
@@ -3962,8 +3966,8 @@ class MacroWorker(QThread):
                         self.confirm_search_region,
                         w_img,
                         h_img,
-                        (0.35, 0.65),
-                        (0.35, 0.75)
+                        (0.20, 0.80),
+                        (0.20, 0.85)
                     )
                     confirm_result = self.find_image(
                         bg_img,
@@ -3972,6 +3976,8 @@ class MacroWorker(QThread):
                         x_range=conf_x,
                         y_range=conf_y
                     )
+                    if not confirm_result or confirm_result[0] is None:
+                        confirm_result = self.find_image(bg_img, TEMPLATES["confirm"], 0.60)
                     if (
                         confirm_result
                         and confirm_result[0] is not None
