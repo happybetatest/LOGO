@@ -2442,8 +2442,12 @@ class MacroWorker(QThread):
                 return
 
             hsv = cv2.cvtColor(hud_crop, cv2.COLOR_BGR2HSV)
+            # รองรับหลอดสีเหลือง/ทองประจำเซิร์ฟเวอร์ (H: 15..45) และหลอดสีชมพูเดิม (H: 130..170)
+            lower_yellow, upper_yellow = np.array([15, 70, 70]), np.array([45, 255, 255])
             lower_pink, upper_pink = np.array([130, 45, 70]), np.array([170, 255, 255])
-            mask = cv2.inRange(hsv, lower_pink, upper_pink)
+            mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow)
+            mask_pink = cv2.inRange(hsv, lower_pink, upper_pink)
+            mask = cv2.bitwise_or(mask_yellow, mask_pink)
             kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
             crop_w = mask.shape[1]
@@ -2541,8 +2545,12 @@ class MacroWorker(QThread):
             return
 
         hsv = cv2.cvtColor(hud_crop, cv2.COLOR_BGR2HSV)
+        # รองรับหลอดสีเหลือง/ทองประจำเซิร์ฟเวอร์ (H: 15..45) และหลอดสีชมพูเดิม (H: 130..170)
+        lower_yellow, upper_yellow = np.array([15, 70, 70]), np.array([45, 255, 255])
         lower_pink, upper_pink = np.array([130, 45, 70]), np.array([170, 255, 255])
-        mask = cv2.inRange(hsv, lower_pink, upper_pink)
+        mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow)
+        mask_pink = cv2.inRange(hsv, lower_pink, upper_pink)
+        mask = cv2.bitwise_or(mask_yellow, mask_pink)
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         crop_w = mask.shape[1]
