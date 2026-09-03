@@ -608,7 +608,7 @@ class DiscordRemoteWorker(QObject):
                 f"🚗 `{pfx}map2` : **เปิดแผนที่ (P) และปักหมุดพาวรถ (Car Pound 2/2) ให้อัตโนมัติ**\n"
                 f"🚙 `{pfx}car` หรือ `{pfx}เบิกรถ` : **กด E ค้าง 2วิ ➔ เลือกรถ ➔ กด Select Vehicle ➔ รัดเข็มขัด**\n"
                 f"🚘 `{pfx}drive` หรือ `{pfx}ขับออโต้` : **กด '-' (ข) ➔ คลิกเปิด Auto Drive อัตโนมัติ**\n"
-                f"📦 `{pfx}check` หรือ `{pfx}bag` : **เปิดกระเป๋า ตรวจเช็คทอง/เพชร และถ่ายรูปส่งกลับมา**\n"
+                f"📦 `{pfx}check` หรือ `{pfx}bag` : **เปิดกระเป๋า ตรวจเช็คน้ำผึ้ง/กระเป๋า และถ่ายรูปส่งกลับมา**\n"
                 f"🚪 `{pfx}close` หรือ `{pfx}ปิดกระเป๋า` หรือ `{pfx}t` : **สั่งกด T เพื่อปิดกระเป๋าทันที**\n"
                 f"🗑️ `{pfx}discard` หรือ `{pfx}ทิ้งน้ำผึ้ง` : **สั่งทิ้งน้ำผึ้ง กดยืนยัน และกลับไปเริ่มฟาร์มต่อให้อัตโนมัติ**\n"
                 f"📸 `{pfx}screen` : ถ่ายภาพหน้าจอ FiveM สดๆ\n"
@@ -616,7 +616,7 @@ class DiscordRemoteWorker(QObject):
                 f"🟢 `{pfx}start` : เริ่มการทำงานของบอท (F9)\n"
                 f"🔴 `{pfx}stop` : หยุดพักบอทชั่วคราว (F9)\n"
                 f"🍗 `{pfx}feed` : สั่งให้ตัวละครกินน้ำ (ช่อง 6) และอาหาร (ช่อง 7)\n"
-                f"💎 `{pfx}store` : สั่งให้เริ่มกระบวนการเก็บเพชรลงรถ\n"
+                
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"*Prefix ปัจจุบัน: `{pfx}` (หรือแท็ก @{self.bot_name} ได้โดยตรง) 🔒*"
             )
@@ -651,7 +651,7 @@ class DiscordRemoteWorker(QObject):
             return
 
         # 3. CHECK BAG & SEND SCREENSHOT
-        if main_cmd in ("check", "bag", "กระเป๋า", "ทอง", "gold"):
+        if main_cmd in ("check", "bag", "กระเป๋า", "น้ำผึ้ง", "honey"):
             wait_id = send_discord_rest_message(
                 self.bot_token, channel_id,
                 f"{tag_prefix} ⏳ กำลังสลับไป FiveM และเปิดกระเป๋าเพื่อถ่ายรูป กรุณารอสักครู่...",
@@ -673,7 +673,7 @@ class DiscordRemoteWorker(QObject):
 
                 caption = (
                     f"{tag_prefix} 📦 **[ผลการตรวจสอบกระเป๋า FiveM]**\n"
-                    f"• แร่ทอง: {gold_info}\n"
+                    f"• น้ำผึ้ง: {gold_info}\n"
                     f"• สถานะบอท: {status_info}\n"
                     f"• เวลา: <t:{int(time.time())}:T>"
                 )
@@ -847,10 +847,10 @@ class DiscordRemoteWorker(QObject):
             return
 
         # 9. STORE DIAMONDS
-        if main_cmd in ("store", "เก็บเพชร", "เก็บของ", "รถ", "diamond", "เพชร"):
+        if False and main_cmd in ("store", "เก็บของ", "เก็บของ", "รถ", "diamond", "ไอเทม"):
             wait_id = send_discord_rest_message(
                 self.bot_token, channel_id,
-                f"{tag_prefix} 💎 กำลังเริ่มกระบวนการเก็บเพชรลงท้ายรถ...",
+                f"{tag_prefix} 💎 กำลังเริ่มกระบวนการเก็บของลงท้ายรถ...",
                 reply_to_message_id=msg_id
             )
             future = asyncio.Future()
@@ -864,7 +864,7 @@ class DiscordRemoteWorker(QObject):
             try:
                 res = await asyncio.wait_for(future, timeout=35.0)
                 img_path = res.get("image_path")
-                msg_text = res.get("message", "กระบวนการเก็บเพชรเสร็จสิ้น")
+                msg_text = res.get("message", "กระบวนการเก็บของเสร็จสิ้น")
                 send_discord_rest_message(
                     self.bot_token, channel_id,
                     content=f"{tag_prefix} 💎 **{msg_text}**",
@@ -881,7 +881,7 @@ class DiscordRemoteWorker(QObject):
             except asyncio.TimeoutError:
                 send_discord_rest_message(
                     self.bot_token, channel_id,
-                    f"{tag_prefix} ⚠️ กระบวนการเก็บเพชรหมดเวลา",
+                    f"{tag_prefix} ⚠️ กระบวนการเก็บของหมดเวลา",
                     reply_to_message_id=msg_id
                 )
             return
@@ -902,7 +902,7 @@ class DiscordRemoteWorker(QObject):
                 f"• สถานะบอท: {res.get('running_text', 'ไม่ระบุ')}\n"
                 f"• การเชื่อมต่อ FiveM: {res.get('fivem_connected', 'ไม่ระบุ')}\n"
                 f"• เป้าหมายทิ้งน้ำผึ้งรอบนี้: {res.get('gold_target', '-')}\n"
-                f"• โหมดเก็บเพชร: {res.get('diamond_mode', 'ไม่ระบุ')}\n"
+                f"• โหมดเก็บของ: {res.get('diamond_mode', 'ไม่ระบุ')}\n"
                 f"• ระบบอาหาร/น้ำ: {res.get('food_status', 'ไม่ระบุ')}\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             )
@@ -1478,13 +1478,13 @@ class MacroWorker(QThread):
 
     def send_diamond_full_webhook(self):
         if not self.discord_webhook_url:
-            self.log_signal.emit("[Discord] เพชรเต็ม 60/60 แต่ยังไม่ได้ตั้งค่า Webhook")
+            self.log_signal.emit("[Discord] น้ำผึ้งเต็ม 60/60 แต่ยังไม่ได้ตั้งค่า Webhook")
             return
         machine_name = os.environ.get("COMPUTERNAME", "Unknown PC")
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         payload = json.dumps({
             "username": "FiveM Farming",
-            "content": f"💎 เพชรเต็ม 60/60\\nเครื่อง: {machine_name}\\nเวลา: {timestamp}"
+            "content": f"💎 น้ำผึ้งเต็ม 60/60\\nเครื่อง: {machine_name}\\nเวลา: {timestamp}"
         }, ensure_ascii=False).encode("utf-8")
         request = urllib.request.Request(
             self.discord_webhook_url,
@@ -1501,7 +1501,7 @@ class MacroWorker(QThread):
             ) as response:
                 if response.status not in (200, 204):
                     raise RuntimeError(f"Discord HTTP {response.status}")
-            self.log_signal.emit("[Discord] แจ้งเตือนเพชรเต็ม 60/60 สำเร็จ")
+            self.log_signal.emit("[Discord] แจ้งเตือนน้ำผึ้งเต็ม 60/60 สำเร็จ")
         except Exception as error:
             self.log_signal.emit(f"[Discord] ส่งแจ้งเตือนไม่สำเร็จ: {type(error).__name__}: {error}")
 
@@ -2215,7 +2215,7 @@ class MacroWorker(QThread):
         if now - self.character_idle_since < 20.0:
             return False
         self.log_signal.emit(
-            "[ระบบน้ำผึ้ง] ตรวจพบตัวละครยืนนิ่ง 20 วินาที กำลังเปิดกระเป๋าเช็คทองเต็ม"
+            "[ระบบน้ำผึ้ง] ตรวจพบตัวละครยืนนิ่ง 20 วินาที กำลังเปิดกระเป๋าเช็คน้ำผึ้งเต็ม"
         )
         if not self.ensure_inventory_open("[ระบบน้ำผึ้ง]"):
             self.idle_fail_streak += 1
@@ -2291,7 +2291,7 @@ class MacroWorker(QThread):
             if int(h_img * 0.15) <= by <= int(h_img * 0.80):
                 return True
 
-        # 2. ตรวจจับไอเทมทอง/เพชรในกระเป๋า
+        # 2. ตรวจจับไอเทมน้ำผึ้งในกระเป๋า
         for tpl, th in (
             ("templates/gold_ore.png", 0.50),
             ("templates/diamond_icon.png", 0.50),
@@ -2350,7 +2350,7 @@ class MacroWorker(QThread):
                 return
 
             hsv = cv2.cvtColor(hud_crop, cv2.COLOR_BGR2HSV)
-            # รองรับหลอดสีเหลือง/ทองประจำเซิร์ฟเวอร์ (H: 15..45) และหลอดสีชมพูเดิม (H: 130..170)
+            # รองรับหลอดสีเหลืองประจำเซิร์ฟเวอร์ (H: 15..45) และหลอดสีชมพูเดิม (H: 130..170)
             lower_yellow, upper_yellow = np.array([15, 70, 70]), np.array([45, 255, 255])
             lower_pink, upper_pink = np.array([130, 45, 70]), np.array([170, 255, 255])
             mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow)
@@ -2453,7 +2453,7 @@ class MacroWorker(QThread):
             return
 
         hsv = cv2.cvtColor(hud_crop, cv2.COLOR_BGR2HSV)
-        # รองรับหลอดสีเหลือง/ทองประจำเซิร์ฟเวอร์ (H: 15..45) และหลอดสีชมพูเดิม (H: 130..170)
+        # รองรับหลอดสีเหลืองประจำเซิร์ฟเวอร์ (H: 15..45) และหลอดสีชมพูเดิม (H: 130..170)
         lower_yellow, upper_yellow = np.array([15, 70, 70]), np.array([45, 255, 255])
         lower_pink, upper_pink = np.array([130, 45, 70]), np.array([170, 255, 255])
         mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow)
@@ -2571,7 +2571,7 @@ class MacroWorker(QThread):
             return False
 
     def execute_store_diamonds_sequence(self):
-        self.log_signal.emit("[ระบบเก็บเพชร] เริ่มกระบวนการเก็บเพชรลงรถ...")
+        self.log_signal.emit("[ระบบเก็บของ] เริ่มกระบวนการเก็บของลงรถ...")
         orig_pos = None
         try:
             orig_pos = win32api.GetCursorPos()
@@ -2579,13 +2579,13 @@ class MacroWorker(QThread):
             pass
         if not self.activate_game_window():
             self.log_signal.emit(
-                "[ระบบเก็บเพชร] ยกเลิกรอบเก็บ "
+                "[ระบบเก็บของ] ยกเลิกรอบเก็บ "
                 "เพราะ FiveM ไม่ได้อยู่ด้านหน้า"
             )
             return False
         
         # 1. กดปุ่ม T ปิดกระเป๋าลงไปก่อน
-        self.log_signal.emit("[ระบบเก็บเพชร] กดปุ่ม T ปิดกระเป๋า...")
+        self.log_signal.emit("[ระบบเก็บของ] กดปุ่ม T ปิดกระเป๋า...")
         self.send_game_key("t", duration=0.15)
         self.safe_sleep(0.8)
         if not self.is_running or self.is_exiting: return False
@@ -2603,16 +2603,16 @@ class MacroWorker(QThread):
                 return False
             geometry = self.get_client_geometry()
             if not geometry:
-                self.log_signal.emit("[ระบบเก็บเพชร] อ่านพื้นที่ FiveM ไม่ได้ จึงไม่กด H")
+                self.log_signal.emit("[ระบบเก็บของ] อ่านพื้นที่ FiveM ไม่ได้ จึงไม่กด H")
                 return False
             game_x, game_y, game_w, game_h = geometry
             win32api.SetCursorPos((game_x + game_w // 2, game_y + game_h // 2))
             time.sleep(0.15)
 
             if trunk_attempt == 1:
-                self.log_signal.emit("[ระบบเก็บเพชร] กำลังกดปุ่ม H เพื่อเปิดเมนูท้ายรถ...")
+                self.log_signal.emit("[ระบบเก็บของ] กำลังกดปุ่ม H เพื่อเปิดเมนูท้ายรถ...")
             else:
-                self.log_signal.emit(f"[ระบบเก็บเพชร] ยังไม่พบปุ่มท้ายรถ กำลังลองกด H ซ้ำ (รอบที่ {trunk_attempt}/3)...")
+                self.log_signal.emit(f"[ระบบเก็บของ] ยังไม่พบปุ่มท้ายรถ กำลังลองกด H ซ้ำ (รอบที่ {trunk_attempt}/3)...")
 
             self.send_game_key("h", duration=0.15)
 
@@ -2632,7 +2632,7 @@ class MacroWorker(QThread):
                 if btn_ready and btn_ready[0] is not None:
                     bx, by, bval = btn_ready
                     screen_x, screen_y = self.client_to_screen(bx, by)
-                    self.log_signal.emit(f"[ระบบเก็บเพชร] 🔘 ตรวจพบปุ่มเปิดท้ายรถ (ความแม่นยำ {bval:.2f}) กำลังคลิก...")
+                    self.log_signal.emit(f"[ระบบเก็บของ] 🔘 ตรวจพบปุ่มเปิดท้ายรถ (ความแม่นยำ {bval:.2f}) กำลังคลิก...")
                     win32api.SetCursorPos((screen_x, screen_y))
                     time.sleep(0.12)
                     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
@@ -2653,7 +2653,7 @@ class MacroWorker(QThread):
 
         if not trunk_opened:
             self.log_signal.emit(
-                "[ระบบเก็บเพชร] ไม่พบปุ่มเปิดท้ายรถ หลังลองครบ 3 ครั้ง ยกเลิกรอบนี้"
+                "[ระบบเก็บของ] ไม่พบปุ่มเปิดท้ายรถ หลังลองครบ 3 ครั้ง ยกเลิกรอบนี้"
             )
             self.send_game_key("t", duration=0.15)
             if orig_pos:
@@ -2715,9 +2715,9 @@ class MacroWorker(QThread):
                                 stored_successfully = True
 
         if stored_successfully:
-            self.log_signal.emit("[ระบบเก็บเพชร] เก็บเพชรเข้ารถสำเร็จ!")
+            self.log_signal.emit("[ระบบเก็บของ] เก็บของเข้ารถสำเร็จ!")
         else:
-            self.log_signal.emit("[ระบบเก็บเพชร] ไม่พบเพชรหรือปุ่มยืนยัน จึงยังไม่ได้เก็บเข้ารถ")
+            self.log_signal.emit("[ระบบเก็บของ] ไม่พบไอเทมหรือปุ่มยืนยัน จึงยังไม่ได้เก็บเข้ารถ")
 
         # 3. ปิดหน้าต่างท้ายรถ (กด T)
         if trunk_opened:
@@ -2727,7 +2727,7 @@ class MacroWorker(QThread):
         self.ensure_not_in_pause_menu()
         
         # 4. กลับไปทำอาชีพ (กด E ค้าง 1.5 วินาที แล้วคลิกเริ่มงาน)
-        self.log_signal.emit("[ระบบเก็บเพชร] กลับไปทำอาชีพ (กด E ค้าง 1.5 วินาที)...")
+        self.log_signal.emit("[ระบบเก็บของ] กลับไปทำอาชีพ (กด E ค้าง 1.5 วินาที)...")
         if not self.hold_game_key("e", 1.5):
             return False
         self.safe_sleep(1.5)
@@ -2744,14 +2744,14 @@ class MacroWorker(QThread):
                 self.safe_sleep(2.0)
                 
         # 5. เปิดกระเป๋าอีกครั้งเพื่อขุดต่อ (ปุ่ม T)
-        self.log_signal.emit("[ระบบเก็บเพชร] กำลังเปิดกระเป๋าอีกครั้ง (ปุ่ม T)...")
+        self.log_signal.emit("[ระบบเก็บของ] กำลังเปิดกระเป๋าอีกครั้ง (ปุ่ม T)...")
         self.send_game_key("t", duration=0.15)
         self.safe_sleep(1.0)
         if orig_pos:
             try: win32api.SetCursorPos(orig_pos)
             except Exception: pass
 
-        self.log_signal.emit("[ระบบเก็บเพชร] เสร็จสิ้นกระบวนการเก็บเพชร!")
+        self.log_signal.emit("[ระบบเก็บของ] เสร็จสิ้นกระบวนการเก็บของ!")
         return True
 
     def check_and_run_store_diamonds(self, trigger_storage=False):
@@ -2797,7 +2797,7 @@ class MacroWorker(QThread):
                 self.diamond_pass_streak = 0
             confirmed = passed and self.diamond_pass_streak >= 2
             if passed and not confirmed:
-                status_str = "พบเพชร >= 30 เม็ด กำลังยืนยันภาพซ้ำก่อนเก็บ"
+                status_str = "พบไอเทม >= 30 เม็ด กำลังยืนยันภาพซ้ำก่อนเก็บ"
             self.diamond_preview_signal.emit(slot_img, val, confirmed, status_str)
             if confirmed and trigger_storage:
                 now = time.time()
@@ -2811,7 +2811,7 @@ class MacroWorker(QThread):
             self.diamond_pass_streak = 0
             val = diamond_result[2] if diamond_result else 0.0
             slot_img = np.zeros((10, 10, 3), dtype=np.uint8)
-            self.diamond_preview_signal.emit(slot_img, val, False, "ไม่พบรูปเพชรในกระเป๋า")
+            self.diamond_preview_signal.emit(slot_img, val, False, "ไม่พบรูปไอเทมในกระเป๋า")
 
     def check_and_run_timed_diamond_store(self):
         """Store any detected diamonds when the configured timer is due."""
@@ -2858,12 +2858,12 @@ class MacroWorker(QThread):
                 self.last_diamond_storage_time = now
                 self.diamond_preview_signal.emit(
                     slot_img, val, True,
-                    f"ครบ {self.diamond_interval_minutes} นาที กำลังเก็บเพชรเข้ารถ"
+                    f"ครบ {self.diamond_interval_minutes} นาที กำลังเก็บของเข้ารถ"
                 )
                 if self.execute_store_diamonds_sequence():
                     self.diamond_cycle_started_at = time.time()
                     self.log_signal.emit(
-                        f"[ระบบเก็บเพชร] ขั้นต่อไป: "
+                        f"[ระบบเก็บของ] ขั้นต่อไป: "
                         f"เก็บเข้ารถรอบใหม่ในอีก "
                         f"{self.diamond_interval_minutes} นาที"
                     )
@@ -2877,7 +2877,7 @@ class MacroWorker(QThread):
             self.diamond_preview_signal.emit(
                 np.zeros((10, 10, 3), dtype=np.uint8),
                 val, False,
-                f"โหมดจับเวลา: ยังไม่พบเพชร (เหลือ {remaining // 60}:{remaining % 60:02d} นาที)"
+                f"โหมดจับเวลา: ยังไม่พบไอเทม (เหลือ {remaining // 60}:{remaining % 60:02d} นาที)"
             )
 
     def check_and_run_no_car_full_mode(self):
@@ -2910,13 +2910,13 @@ class MacroWorker(QThread):
             confirmed = self.diamond_full_streak >= 2
             status = "พบ 60/60 กำลังยืนยันภาพซ้ำ"
             if confirmed:
-                status = "เพชรเต็ม 60/60 — หยุดฟาร์มแล้ว"
+                status = "น้ำผึ้งเต็ม 60/60 — หยุดฟาร์มแล้ว"
             self.diamond_preview_signal.emit(slot_img, val, confirmed, status)
             if confirmed and not self.diamond_full_notified:
                 self.diamond_full_notified = True
                 self.is_running = False
                 self.running_state_signal.emit(False)
-                self.log_signal.emit("[ระบบเพชร] ตรวจพบ 60/60 หยุดฟาร์มโหมดไม่มีรถ")
+                self.log_signal.emit("[ระบบเก็บของ] ตรวจพบ 60/60 หยุดฟาร์มโหมดไม่มีรถ")
                 self.send_diamond_full_webhook()
         else:
             self.diamond_full_streak = 0
@@ -2924,7 +2924,7 @@ class MacroWorker(QThread):
             val = full_result[2] if full_result else 0.0
             self.diamond_preview_signal.emit(
                 np.zeros((10, 10, 3), dtype=np.uint8),
-                val, False, "โหมดไม่มีรถ: รอเพชรเต็ม 60/60"
+                val, False, "โหมดไม่มีรถ: รอน้ำผึ้งเต็ม 60/60"
             )
 
     def execute_remote_check_bag(self):
@@ -2950,7 +2950,7 @@ class MacroWorker(QThread):
                     "gold_info": "ไม่ทราบ",
                 }
 
-            gold_info = f"เป้าหมายทิ้ง: {self.gold_discard_target}/60 (ประเมินทองปัจจุบัน: {self.gold_estimated_count})"
+            gold_info = f"เป้าหมายทิ้ง: {self.gold_discard_target}/60 (ประเมินน้ำผึ้งปัจจุบัน: {self.gold_estimated_count})"
             status_info = "🟢 กำลังฟาร์ม" if self.is_running else "🔴 หยุดพัก"
 
             temp_path = get_writable_path("discord_bag_capture.png")
@@ -3120,14 +3120,14 @@ class MacroWorker(QThread):
             if bg_after is not None:
                 cv2.imwrite(temp_path, bg_after)
 
-            msg = "เก็บเพชรลงรถสำเร็จเรียบร้อยแล้ว!" if success else "กระบวนการเก็บเพชรเสร็จสิ้น (โปรดตรวจสอบว่าตัวละครอยู่ใกล้ท้ายรถ)"
+            msg = "เก็บของลงรถสำเร็จเรียบร้อยแล้ว!" if success else "กระบวนการเก็บของเสร็จสิ้น (โปรดตรวจสอบว่าตัวละครอยู่ใกล้ท้ายรถ)"
             return {
                 "success": success,
                 "message": msg,
                 "image_path": temp_path if os.path.isfile(temp_path) else None,
             }
         except Exception as error:
-            return {"success": False, "message": f"เกิดข้อผิดพลาดในการเก็บเพชร: {error}"}
+            return {"success": False, "message": f"เกิดข้อผิดพลาดในการเก็บของ: {error}"}
 
     def execute_remote_feed(self):
         """Execute the feeding sequence from Discord command."""
@@ -3939,7 +3939,7 @@ class MacroWorker(QThread):
                     and time.time() > self.idle_inventory_check_until
                 ):
                     self.log_signal.emit(
-                        "[ระบบน้ำผึ้ง] ตรวจแล้วไม่พบทองเต็ม กำลังปิดกระเป๋าและกลับไปฟาร์ม"
+                        "[ระบบน้ำผึ้ง] ตรวจแล้วไม่พบน้ำผึ้งเต็ม กำลังปิดกระเป๋าและกลับไปฟาร์ม"
                     )
                     self.idle_inventory_recovery = False
                     self.idle_inventory_check_until = 0.0
@@ -4032,7 +4032,7 @@ class MacroWorker(QThread):
                                     np.zeros((10, 10, 3), dtype=np.uint8),
                                 )
                                 self.log_signal.emit(
-                                    "[ระบบน้ำผึ้ง] ยืนยันทองเต็ม 60/60 จากภาพสำรอง กำลังทิ้งน้ำผึ้ง"
+                                    "[ระบบน้ำผึ้ง] ยืนยันน้ำผึ้งเต็ม 60/60 จากภาพสำรอง กำลังทิ้งน้ำผึ้ง"
                                 )
                     if can_dispose_now and (
                         count_result or random_target_reached
@@ -4243,12 +4243,12 @@ class ReadmeDialog(QDialog):
                     <tr style="background-color: #ffffff; border-bottom: 1px solid #e2e8f0;">
                         <td style="padding: 8px 10px;"><b style="background:#fef3c7; color:#92400e; padding:2px 6px; border-radius:4px; font-family:Consolas;">!discard</b></td>
                         <td style="padding: 8px 10px;">!ทิ้งน้ำผึ้ง, !gold</td>
-                        <td style="padding: 8px 10px;">เปิดกระเป๋า ลากทองทิ้งลงถังขยะ กดยืนยัน และเริ่มฟาร์มต่ออัตโนมัติ</td>
+                        <td style="padding: 8px 10px;">เปิดกระเป๋า ทิ้งน้ำผึ้งอัตโนมัติ กดยืนยัน และเริ่มฟาร์มต่ออัตโนมัติ</td>
                     </tr>
                     <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
                         <td style="padding: 8px 10px;"><b style="background:#ccfbf1; color:#115e59; padding:2px 6px; border-radius:4px; font-family:Consolas;">!store</b></td>
-                        <td style="padding: 8px 10px;">!เก็บเพชร</td>
-                        <td style="padding: 8px 10px;">เปิดท้ายรถและย้ายเพชรจากตัวลงท้ายรถอัตโนมัติ</td>
+                        <td style="padding: 8px 10px;">!ทิ้ง, !discard</td>
+                        <td style="padding: 8px 10px;">เปิดกระเป๋า ทิ้งน้ำผึ้งอัตโนมัติและเริ่มฟาร์มต่อ</td>
                     </tr>
                     <tr style="background-color: #ffffff; border-bottom: 1px solid #e2e8f0;">
                         <td style="padding: 8px 10px;"><b style="background:#ffedd5; color:#9a3412; padding:2px 6px; border-radius:4px; font-family:Consolas;">!feed</b></td>
@@ -4311,7 +4311,7 @@ class ReadmeDialog(QDialog):
                 <ul style="margin-bottom: 0; color: #334155;">
                     <li><b>Background Mode:</b> ทำงานแบบเบื้องหลังเต็มรูปแบบ สามารถย่อหน้าต่าง FiveM หรือเล่นเกม/ทำงานอื่นได้โดยไม่โดนรบกวน</li>
                     <li><b>ระบบทิ้งน้ำผึ้ง (Auto-Discard Gold):</b> ตรวจสอบและทิ้งน้ำผึ้งลงถังขยะเมื่อถึงจำนวนที่กำหนด (เช่น 20-40 ก้อน)</li>
-                    <li><b>ระบบเก็บเพชรลงรถ (Auto-Store Diamonds):</b> ย้ายเพชรจากตัวละครลงท้ายรถอัตโนมัติ</li>
+                    <li><b>ระบบทิ้งน้ำผึ้งอัตโนมัติ (Auto-Discard Honey):</b> ทิ้งน้ำผึ้งเมื่อถึงเป้าหมายและเริ่มฟาร์มต่อ</li>
                     <li><b>ระบบกินข้าว/น้ำ (Auto-Feed):</b> ตรวจจับระดับ HUD หลอดอาหาร/น้ำ และกดใช้จากช่อง 6 (น้ำ) และช่อง 7 (อาหาร)</li>
                 </ul>
             </div>
@@ -4411,7 +4411,7 @@ class MainWindow(QMainWindow):
         self.last_toggle_time = 0.0
         self.load_config()
         self.load_private_settings()
-        self.setWindowTitle("ระบบมาโครทิ้งน้ำผึ้งอัตโนมัติ (Background)")
+        self.setWindowTitle("LOGO Farm Macro - ระบบฟาร์มน้ำผึ้งอัตโนมัติ (Background)")
         self.setMinimumSize(480, 360)
         if self.saved_geometry and len(self.saved_geometry) == 4:
             gx, gy, gw, gh = self.saved_geometry
@@ -4472,7 +4472,7 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(12)
 
         header_layout = QHBoxLayout()
-        title_label = QLabel("LOGO Macro - Background")
+        title_label = QLabel("LOGO Farm Macro - ฟาร์มน้ำผึ้งอัตโนมัติ (Background)")
         title_label.setObjectName("Title")
 
         self.readme_btn = QPushButton("📖 วิธีใช้งาน (Readme)")
@@ -4550,7 +4550,7 @@ class MainWindow(QMainWindow):
         setup_layout.addWidget(af_btn)
         config_tab_layout.addWidget(setup_box)
 
-        sliders_box = QGroupBox("เกณฑ์ขั้นต่ำหลอดอาหาร/น้ำ (พิกเซลสีชมพู)")
+        sliders_box = QGroupBox("เกณฑ์ขั้นต่ำหลอดอาหาร/น้ำ (พิกเซลวงแหวนสีเหลือง)")
         sliders_layout = QVBoxLayout(sliders_box)
         sliders_layout.addWidget(QLabel("เกณฑ์หลอดอาหาร (หากน้อยกว่าจะกิน):"))
         self.hunger_val_lbl = QLabel(f"{self.hunger_limit}")
@@ -4575,9 +4575,9 @@ class MainWindow(QMainWindow):
         self.test_feed_btn = QPushButton("ทดสอบระบบกินข้าว/น้ำ")
         self.test_feed_btn.setStyleSheet("QPushButton { background-color: #0284c7; border: none; color: white; font-weight: bold; font-size: 12px; border-radius: 6px; padding: 8px; }")
         self.test_feed_btn.clicked.connect(self.test_feed_sequence)
-        self.test_store_btn = QPushButton("ทดสอบระบบเก็บของลงรถ")
+        self.test_store_btn = QPushButton("ทดสอบระบบทิ้งน้ำผึ้ง")
         self.test_store_btn.setStyleSheet("QPushButton { background-color: #0d9488; border: none; color: white; font-weight: bold; font-size: 12px; border-radius: 6px; padding: 8px; }")
-        self.test_store_btn.clicked.connect(self.test_store_sequence)
+        self.test_store_btn.clicked.connect(self.execute_remote_discard_gold)
         roi_layout.addWidget(self.test_feed_btn)
         roi_layout.addWidget(self.test_store_btn)
         config_tab_layout.addWidget(roi_box)
@@ -4667,24 +4667,21 @@ class MainWindow(QMainWindow):
         self.auto_feed_cb = QCheckBox("ระบบกินข้าว/น้ำอัตโนมัติ")
         self.auto_feed_cb.setChecked(self.auto_feed_enabled)
         self.auto_feed_cb.toggled.connect(self.on_auto_feed_toggled)
-        self.auto_store_cb = QCheckBox("เปิดระบบจัดการเพชรอัตโนมัติ")
+        self.auto_store_cb = QCheckBox("เปิดระบบเก็บของลงรถ (ปิดการใช้งาน)")
         self.auto_store_cb.setChecked(self.auto_store_enabled)
         self.auto_store_cb.toggled.connect(self.on_auto_store_toggled)
         self.diamond_mode_combo = QComboBox()
-        self.diamond_mode_combo.addItem("มีรถ: เก็บเพชรทุก 40 นาที", "car_timer")
+        self.diamond_mode_combo.addItem("มีรถ: เก็บของทุก 40 นาที", "car_timer")
         self.diamond_mode_combo.addItem("ไม่มีรถ: เต็ม 60/60 แล้วหยุด + แจ้ง Discord", "no_car_full")
         mode_index = self.diamond_mode_combo.findData(self.diamond_mode)
         self.diamond_mode_combo.setCurrentIndex(max(0, mode_index))
         self.diamond_mode_combo.currentIndexChanged.connect(self.on_diamond_mode_changed)
         self.webhook_input = QLineEdit()
         self.webhook_input.setEchoMode(QLineEdit.Password)
-        self.webhook_input.setPlaceholderText("Discord Webhook (แจ้งเพชรเต็มและแจ้งบัค)")
+        self.webhook_input.setPlaceholderText("Discord Webhook (แจ้งน้ำผึ้งเต็มและแจ้งบัค)")
         self.webhook_input.setText(self.discord_webhook_url)
         self.webhook_input.editingFinished.connect(self.on_webhook_edited)
         toggle_layout.addWidget(self.auto_feed_cb)
-        toggle_layout.addWidget(self.auto_store_cb)
-        toggle_layout.addWidget(QLabel("โหมดเพชร:"))
-        toggle_layout.addWidget(self.diamond_mode_combo)
         toggle_layout.addWidget(self.webhook_input)
         config_tab_layout.addWidget(toggle_box)
 
@@ -4777,27 +4774,27 @@ class MainWindow(QMainWindow):
             row_layout.addWidget(btn_reg)
             layout.addLayout(row_layout)
             
-        g_gold = QGroupBox("🔶 หมวดฟาร์มทอง (ในกระเป๋าตัวละคร)")
+        g_gold = QGroupBox("🍯 หมวดฟาร์มน้ำผึ้ง (ในกระเป๋าตัวละคร)")
         l_gold = QVBoxLayout(g_gold)
-        create_crop_row(l_gold, "รูปแร่ทองคำ (น้ำผึ้ง):", "gold_ore.png", "gold_ore")
-        create_crop_row(l_gold, "รูปตัวเลข (แร่ทอง):", "gold_text.png", "gold_text")
+        create_crop_row(l_gold, "รูปขวดน้ำผึ้ง (Honey):", "gold_ore.png", "gold_ore")
+        create_crop_row(l_gold, "รูปตัวเลขจำนวน (X/60):", "gold_text.png", "gold_text")
         create_crop_row(l_gold, "ปุ่มทำลาย:", "destroy.png", "destroy")
         create_crop_row(l_gold, "ปุ่มทั้งหมด (กระเป๋า):", "all.png", "all")
         create_crop_row(l_gold, "ปุ่มตกลง (กระเป๋า):", "confirm.png", "confirm")
         crops_scroll_layout.addWidget(g_gold)
         
-        g_diamond = QGroupBox("💎 หมวดเพชร (ตรวจนับในกระเป๋า)")
+        g_diamond = QGroupBox("📦 หมวดไอเทมสำรอง")
         l_diamond = QVBoxLayout(g_diamond)
-        create_crop_row(l_diamond, "รูปเพชร (กระเป๋าตัวละคร):", "diamond_icon.png", "diamond")
-        crops_scroll_layout.addWidget(g_diamond)
+        create_crop_row(l_diamond, "รูปไอเทมสำรอง:", "diamond_icon.png", "diamond")
+        # crops_scroll_layout.addWidget(g_diamond)
         
         g_trunk = QGroupBox("🚗 หมวดเก็บลงท้ายรถ")
         l_trunk = QVBoxLayout(g_trunk)
-        create_crop_row(l_trunk, "รูปเพชร (ท้ายรถ):", "diamond_trunk.png", "diamond_trunk")
+        create_crop_row(l_trunk, "รูปไอเทมท้ายรถ:", "diamond_trunk.png", "diamond_trunk")
         create_crop_row(l_trunk, "ปุ่มเปิดท้ายรถ:", "trunk_ready.png", "trunk_ready")
         create_crop_row(l_trunk, "ปุ่มทั้งหมด (ท้ายรถ):", "all_trunk.png", "all_trunk")
         create_crop_row(l_trunk, "ปุ่มตกลง (ท้ายรถ):", "confirm_trunk.png", "confirm_trunk")
-        crops_scroll_layout.addWidget(g_trunk)
+        # crops_scroll_layout.addWidget(g_trunk)
         
         g_other = QGroupBox("⚙️ หมวดอื่นๆ")
         l_other = QVBoxLayout(g_other)
@@ -4839,10 +4836,10 @@ class MainWindow(QMainWindow):
             monitors_layout.addWidget(card)
             self.monitor_cards[name] = {"led": led, "conf": conf_bar, "frame": card}
 
-        create_monitor_card("gold", "1. ทองคำ")
-        create_monitor_card("destroy", "2. ทำลาย")
-        create_monitor_card("all", "3. ทั้งหมด")
-        create_monitor_card("confirm", "4. ดำเนินการ")
+        create_monitor_card("gold", "1. น้ำผึ้ง")
+        create_monitor_card("destroy", "2. ทิ้ง (Discard)")
+        create_monitor_card("all", "3. ทั้งหมด (↗↗)")
+        create_monitor_card("confirm", "4. ยืนยัน Discard")
         right_panel.addLayout(monitors_layout)
         
         self.preview_tabs = QTabWidget()
@@ -4869,16 +4866,16 @@ class MainWindow(QMainWindow):
         self.gold_tab = QWidget()
         self.gold_tab.setObjectName("PreviewTab")
         gold_layout = QHBoxLayout(self.gold_tab)
-        self.lbl_gold_ore = QLabel("รอรูปทอง...")
+        self.lbl_gold_ore = QLabel("รอรูปน้ำผึ้ง...")
         self.lbl_gold_ore.setFixedSize(90, 45)
         self.lbl_gold_ore.setStyleSheet("border: 1px solid #cbd5e1; background-color: #f1f5f9;")
-        self.lbl_gold_text = QLabel("รอรูปเลข...")
+        self.lbl_gold_text = QLabel("รอรูปตัวเลข...")
         self.lbl_gold_text.setFixedSize(90, 45)
         self.lbl_gold_text.setStyleSheet("border: 1px solid #cbd5e1; background-color: #f1f5f9;")
         gold_layout.addWidget(self.lbl_gold_ore)
         gold_layout.addWidget(self.lbl_gold_text)
         gold_data_layout = QVBoxLayout()
-        self.lbl_gold_ore_val = QLabel("การเจอน้ำผึ้ง: - %")
+        self.lbl_gold_ore_val = QLabel("ความเหมือนน้ำผึ้ง: - %")
         self.lbl_gold_text_val = QLabel("ความเหมือนตัวเลข: - %")
         self.lbl_gold_thresh_val = QLabel("เกณฑ์ตัดสินใจทิ้ง: - %")
         gold_data_layout.addWidget(self.lbl_gold_ore_val)
@@ -4888,19 +4885,19 @@ class MainWindow(QMainWindow):
         self.diamond_tab = QWidget()
         self.diamond_tab.setObjectName("PreviewTab")
         diamond_layout = QHBoxLayout(self.diamond_tab)
-        self.lbl_diamond_slot = QLabel("รอรูปเพชร...")
+        self.lbl_diamond_slot = QLabel("รอรูปสำรอง...")
         self.lbl_diamond_slot.setFixedSize(90, 45)
         self.lbl_diamond_slot.setStyleSheet("border: 1px solid #cbd5e1; background-color: #f1f5f9;")
         diamond_layout.addWidget(self.lbl_diamond_slot)
         diamond_data_layout = QVBoxLayout()
-        self.lbl_diamond_score = QLabel("ความเหมือนรูปเพชร: - %")
+        self.lbl_diamond_score = QLabel("ความเหมือนรูปสำรอง: - %")
         self.lbl_diamond_status = QLabel("สถานะ: รอดำเนินการ")
         diamond_data_layout.addWidget(self.lbl_diamond_score)
         diamond_data_layout.addWidget(self.lbl_diamond_status)
         diamond_layout.addLayout(diamond_data_layout)
         self.preview_tabs.addTab(self.hud_tab, "พรีวิวหลอดอาหาร/น้ำ")
-        self.preview_tabs.addTab(self.gold_tab, "พรีวิวสแกนเศษทองคำ")
-        self.preview_tabs.addTab(self.diamond_tab, "พรีวิวสแกนเพชร")
+        self.preview_tabs.addTab(self.gold_tab, "พรีวิวสแกนน้ำผึ้ง")
+        # self.preview_tabs.addTab(self.diamond_tab, "พรีวิวสแกนสำรอง")
         right_panel.addWidget(self.preview_tabs)
 
         right_panel.addWidget(QLabel("บันทึกการทำงานของบอท:"))
@@ -5099,7 +5096,7 @@ class MainWindow(QMainWindow):
             if slot_crop.size > 100:
                 h, w, c = slot_crop.shape
                 self.lbl_diamond_slot.setPixmap(QPixmap.fromImage(QImage(slot_crop.tobytes(), w, h, c*w, QImage.Format_BGR888)).scaled(self.lbl_diamond_slot.width(), self.lbl_diamond_slot.height(), Qt.KeepAspectRatio))
-            self.lbl_diamond_score.setText(f"ความเหมือนรูปเพชร: {match_score*100:.1f}% (เกณฑ์: 86.0%)")
+            self.lbl_diamond_score.setText(f"ความเหมือนรูปสำรอง: {match_score*100:.1f}% (เกณฑ์: 86.0%)")
             self.lbl_diamond_status.setText(f"สถานะ: {status_str}")
         except Exception: pass
 

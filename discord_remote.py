@@ -277,22 +277,21 @@ class DiscordRemoteWorker(QObject):
             help_text = (
                 "🎮 **FiveM Farming Macro — เมนูคำสั่งควบคุมระยะไกล**\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                "📦 `!check` หรือ `!bag` : **เปิดกระเป๋า ตรวจเช็คทอง/เพชร และถ่ายรูปส่งกลับมา**\n"
-                "🗑️ `!discard` หรือ `!ทิ้งทอง` : **สั่งทิ้งทอง กดยืนยัน และกลับไปเริ่มฟาร์มต่อให้อัตโนมัติ**\n"
+                "📦 `!check` หรือ `!bag` : **เปิดกระเป๋า ตรวจเช็คน้ำผึ้ง/กระเป๋า และถ่ายรูปส่งกลับมา**\n"
+                "🗑️ `!discard` หรือ `!ทิ้งน้ำผึ้ง` : **สั่งทิ้งน้ำผึ้ง กดยืนยัน และกลับไปเริ่มฟาร์มต่อให้อัตโนมัติ**\n"
                 "📸 `!screen` : ถ่ายภาพหน้าจอ FiveM สดๆ\n"
                 "📊 `!status` : ตรวจสอบสถานะการทำงานปัจจุบัน\n"
                 "🟢 `!start` : เริ่มการทำงานของบอท (F9)\n"
                 "🔴 `!stop` : หยุดพักบอทชั่วคราว (F9)\n"
                 "🍗 `!feed` : สั่งให้ตัวละครกินน้ำ (ช่อง 6) และอาหาร (ช่อง 7)\n"
-                "💎 `!store` : สั่งให้เริ่มกระบวนการเก็บเพชรลงรถ\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 "*คำสั่งทั้งหมดล็อกสิทธิ์ให้เจ้าของใช้งานได้เท่านั้น 🔒*"
             )
             send_discord_rest_message(self.bot_token, channel_id, help_text, reply_to_message_id=msg_id)
             return
 
         # 2. CHECK BAG & SEND SCREENSHOT
-        if cmd in ("check", "bag", "กระเป๋า", "ทอง", "gold"):
+        if cmd in ("check", "bag", "กระเป๋า", "น้ำผึ้ง", "honey"):
             wait_id = send_discord_rest_message(
                 self.bot_token, channel_id,
                 "⏳ กำลังสลับไป FiveM และเปิดกระเป๋าเพื่อถ่ายรูป กรุณารอสักครู่...",
@@ -314,7 +313,7 @@ class DiscordRemoteWorker(QObject):
 
                 caption = (
                     f"📦 **[ผลการตรวจสอบกระเป๋า FiveM]**\n"
-                    f"• แร่ทอง: {gold_info}\n"
+                    f"• น้ำผึ้ง: {gold_info}\n"
                     f"• สถานะบอท: {status_info}\n"
                     f"• เวลา: <t:{int(time.time())}:T>"
                 )
@@ -341,10 +340,10 @@ class DiscordRemoteWorker(QObject):
             return
 
         # 3. DISCARD GOLD & RESUME FARMING
-        if cmd in ("discard", "dump", "drop", "ทิ้งทอง", "ทิ้ง"):
+        if cmd in ("discard", "dump", "drop", "ทิ้งน้ำผึ้ง", "ทิ้ง"):
             wait_id = send_discord_rest_message(
                 self.bot_token, channel_id,
-                "🗑️ กำลังเปิดกระเป๋าเพื่อกดทิ้งทอง และเริ่มฟาร์มต่อให้อัตโนมัติ...",
+                "🗑️ กำลังเปิดกระเป๋าเพื่อกดทิ้งน้ำผึ้ง และเริ่มฟาร์มต่อให้อัตโนมัติ...",
                 reply_to_message_id=msg_id
             )
             future = asyncio.Future()
@@ -378,7 +377,7 @@ class DiscordRemoteWorker(QObject):
             except asyncio.TimeoutError:
                 send_discord_rest_message(
                     self.bot_token, channel_id,
-                    "⚠️ คำสั่งหมดเวลา: การทิ้งทองใช้เวลานานเกินกำหนด",
+                    "⚠️ คำสั่งหมดเวลา: การทิ้งน้ำผึ้งใช้เวลานานเกินกำหนด",
                     reply_to_message_id=msg_id
                 )
             return
@@ -487,38 +486,6 @@ class DiscordRemoteWorker(QObject):
                 )
             return
 
-        # 8. STORE DIAMONDS
-        if cmd in ("store", "เก็บเพชร", "เก็บของ", "รถ"):
-            wait_id = send_discord_rest_message(
-                self.bot_token, channel_id,
-                "💎 กำลังเริ่มกระบวนการเก็บเพชรลงท้ายรถ...",
-                reply_to_message_id=msg_id
-            )
-            future = asyncio.Future()
-
-            def callback(result):
-                if self.loop and not self.loop.is_closed():
-                    self.loop.call_soon_threadsafe(future.set_result, result)
-
-            self.action_requested.emit("store_diamonds", callback)
-
-            try:
-                res = await asyncio.wait_for(future, timeout=30.0)
-                send_discord_rest_message(
-                    self.bot_token, channel_id,
-                    f"💎 **{res.get('message', 'กระบวนการเก็บเพชรเสร็จสิ้น')}**",
-                    reply_to_message_id=msg_id
-                )
-                if wait_id:
-                    delete_discord_rest_message(self.bot_token, channel_id, wait_id)
-            except asyncio.TimeoutError:
-                send_discord_rest_message(
-                    self.bot_token, channel_id,
-                    "⚠️ กระบวนการเก็บเพชรหมดเวลา",
-                    reply_to_message_id=msg_id
-                )
-            return
-
         # 9. STATUS
         if cmd in ("status", "สถานะ", "info"):
             future = asyncio.Future()
@@ -534,8 +501,8 @@ class DiscordRemoteWorker(QObject):
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"• สถานะบอท: {res.get('running_text', 'ไม่ระบุ')}\n"
                 f"• การเชื่อมต่อ FiveM: {res.get('fivem_connected', 'ไม่ระบุ')}\n"
-                f"• เป้าหมายทิ้งทองรอบนี้: {res.get('gold_target', '-')}\n"
-                f"• โหมดเก็บเพชร: {res.get('diamond_mode', 'ไม่ระบุ')}\n"
+                f"• เป้าหมายทิ้งน้ำผึ้งรอบนี้: {res.get('gold_target', '-')}\n"
+                
                 f"• ระบบอาหาร/น้ำ: {res.get('food_status', 'ไม่ระบุ')}\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             )
