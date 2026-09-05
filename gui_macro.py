@@ -4577,7 +4577,7 @@ class MainWindow(QMainWindow):
         self.test_feed_btn.clicked.connect(self.test_feed_sequence)
         self.test_store_btn = QPushButton("ทดสอบระบบทิ้งน้ำผึ้ง")
         self.test_store_btn.setStyleSheet("QPushButton { background-color: #0d9488; border: none; color: white; font-weight: bold; font-size: 12px; border-radius: 6px; padding: 8px; }")
-        self.test_store_btn.clicked.connect(self.execute_remote_discard_gold)
+        self.test_store_btn.clicked.connect(self.test_discard_sequence)
         roi_layout.addWidget(self.test_feed_btn)
         roi_layout.addWidget(self.test_store_btn)
         config_tab_layout.addWidget(roi_box)
@@ -5479,8 +5479,12 @@ class MainWindow(QMainWindow):
     def test_feed_sequence(self):
         if self.worker.hwnd: self.worker.force_feed_test = True
 
+    def test_discard_sequence(self):
+        if self.worker and self.worker.hwnd:
+            threading.Thread(target=self.worker.execute_remote_discard_gold, daemon=True).start()
+
     def test_store_sequence(self):
-        if self.worker.hwnd: self.worker.force_store_test = True
+        self.test_discard_sequence()
 
     def on_auto_feed_toggled(self, checked):
         self.auto_feed_enabled = checked

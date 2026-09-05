@@ -1,11 +1,11 @@
-@echo off
-title FiveM Farming Macro
-cd /d "%~dp0"
-
-echo Starting FiveM Farming Macro (Python Mode)...
-python gui_macro.py
-
-if %ERRORLEVEL% NEQ 0 (
-    echo Error running macro (Exit Code: %ERRORLEVEL%)
-    pause
-)
+@echo off
+title LOGO Farm Macro - Tale Town
+cd /d "c:\Users\HXPPY\Downloads\LOGO"
+python gui_macro.py
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo ==========================================
+    echo เกิดข้อผิดพลาดในการรันโปรแกรม (Exit Code: %ERRORLEVEL%)
+    echo ==========================================
+    pause
+)
