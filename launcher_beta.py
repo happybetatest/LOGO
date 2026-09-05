@@ -9,6 +9,7 @@ import tempfile
 import urllib.request
 import zipfile
 import certifi
+import time
 from PySide6.QtCore import QThread, Signal, QTimer, Qt
 from PySide6.QtWidgets import (
     QApplication, QLabel, QMainWindow, QMessageBox, QProgressBar,
@@ -31,16 +32,24 @@ USER_AGENT = "LOGO-Beta-Launcher/1.0"
 HTTPS_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 
-def request_bytes(url, timeout=30):
-    request = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": USER_AGENT,
-            "Accept": "application/vnd.github+json",
-        },
-    )
-    with urllib.request.urlopen(request, timeout=timeout, context=HTTPS_CONTEXT) as response:
-        return response.read()
+def request_bytes(url, timeout=30, retries=3):
+    last_error = None
+    for attempt in range(retries):
+        try:
+            request = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": USER_AGENT,
+                    "Accept": "application/vnd.github+json",
+                },
+            )
+            with urllib.request.urlopen(request, timeout=timeout, context=HTTPS_CONTEXT) as response:
+                return response.read()
+        except Exception as error:
+            last_error = error
+            if attempt < retries - 1:
+                time.sleep(1.0 * (attempt + 1))
+    raise last_error
 
 
 def sha256_file(path):
@@ -171,6 +180,15 @@ class UpdateWorker(QThread):
             )
             self.ready.emit(os.path.join(APP_DIR, APP_EXE))
         except Exception as error:
+            app_path = os.path.join(APP_DIR, APP_EXE)
+            if os.path.isfile(app_path):
+                self.status.emit(
+                    "เปิดโปรแกรมโดยตรง",
+                    "ไม่สามารถเชื่อมต่ออัปเดตได้ กำลังเปิดเวอร์ชันปัจจุบันในเครื่อง…",
+                    100,
+                )
+                self.ready.emit(app_path)
+                return
             self.failed.emit(str(error))
 
     def run(self):
@@ -180,7 +198,7 @@ class UpdateWorker(QThread):
 class LauncherWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("FiveM Farming Launcher (Beta / Test)")
+        self.setWindowTitle("LOGO Launcher (Beta Channel)")
         self.setFixedSize(540, 360)
         self.setStyleSheet(
             "QMainWindow, QWidget { background: #fffbeb; font-family: 'Segoe UI', Tahoma, sans-serif; }"
@@ -201,7 +219,7 @@ class LauncherWindow(QMainWindow):
         self.setCentralWidget(self.central)
 
         # Progress / Status View Components
-        self.title_label = QLabel("กำลังตรวจสอบสิทธิ์การใช้งาน (Beta Channel)…")
+        self.title_label = QLabel("กำลังตรวจสอบเวอร์ชันล่าสุด (Beta)…")
         self.title_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #78350f;")
         self.detail_label = QLabel("กำลังเชื่อมต่อเซิร์ฟเวอร์...")
         self.detail_label.setStyleSheet("font-size: 12px; color: #92400e;")
