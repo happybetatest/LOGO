@@ -1325,6 +1325,7 @@ class MacroWorker(QThread):
         self.confirm_trunk_search_region = None
         self.hunger_limit = 20
         self.thirst_limit = 20
+        self.feed_wait_seconds = 12.0
         self.force_feed_test = False
         self.force_store_test = False
         self.last_hud_check_time = 0.0
@@ -1393,6 +1394,8 @@ class MacroWorker(QThread):
             elif key == "trunk_ready_search": self.trunk_ready_search_region = value
             elif key == "all_trunk_search": self.all_trunk_search_region = value
             elif key == "confirm_trunk_search": self.confirm_trunk_search_region = value
+        elif config_type == "duration":
+            if key == "feed": self.feed_wait_seconds = float(value)
         elif config_type == "limit":
             if key == "hunger": self.hunger_limit = value
             elif key == "thirst": self.thirst_limit = value
@@ -2391,20 +2394,20 @@ class MacroWorker(QThread):
         
         # 3. กินน้ำ (ช่อง 6)
         if need_water:
-            self.log_signal.emit("[ระบบป้อนอาหาร] กำลังกินน้ำ (ช่อง 6)...")
+            self.log_signal.emit(f"[ระบบป้อนอาหาร] กำลังกินน้ำ (ช่อง 6) รอกิน {self.feed_wait_seconds:.0f} วิ...")
             self.send_game_key("6", duration=0.20)
             self.safe_sleep(0.3)
             self.send_game_key("6", duration=0.20)
-            self.safe_sleep(8.0)
+            self.safe_sleep(self.feed_wait_seconds)
             if not self.is_running or self.is_exiting: return False
             
         # 4. กินอาหาร (ช่อง 7)
         if need_food:
-            self.log_signal.emit("[ระบบป้อนอาหาร] กำลังกินอาหาร (ช่อง 7)...")
+            self.log_signal.emit(f"[ระบบป้อนอาหาร] กำลังกินอาหาร (ช่อง 7) รอกิน {self.feed_wait_seconds:.0f} วิ...")
             self.send_game_key("7", duration=0.20)
             self.safe_sleep(0.3)
             self.send_game_key("7", duration=0.20)
-            self.safe_sleep(8.0)
+            self.safe_sleep(self.feed_wait_seconds)
             if not self.is_running or self.is_exiting: return False
             
         self.ensure_not_in_pause_menu()
@@ -4409,12 +4412,14 @@ class MainWindow(QMainWindow):
         self.config_path = get_writable_path("config.json")
         self.private_settings_path = get_writable_path("private-settings.json")
         self.last_toggle_time = 0.0
+        self.saved_geometry = None
         self.load_config()
         self.load_private_settings()
         self.setWindowTitle("LOGO Farm Macro - ระบบฟาร์มน้ำผึ้งอัตโนมัติ (Background)")
         self.setMinimumSize(480, 360)
-        if self.saved_geometry and len(self.saved_geometry) == 4:
-            gx, gy, gw, gh = self.saved_geometry
+        saved_geo = getattr(self, "saved_geometry", None)
+        if saved_geo and len(saved_geo) == 4:
+            gx, gy, gw, gh = saved_geo
             self.resize(max(480, gw), max(360, gh))
             self.move(gx, gy)
         else:
@@ -4568,6 +4573,14 @@ class MainWindow(QMainWindow):
         thirst_slider.valueChanged.connect(self.on_thirst_limit_changed)
         sliders_layout.addWidget(self.thirst_val_lbl)
         sliders_layout.addWidget(thirst_slider)
+        sliders_layout.addWidget(QLabel("เวลารอกินข้าว/น้ำ (วินาที):"))
+        self.feed_time_lbl = QLabel(f"{int(self.feed_wait_seconds)} วินาที")
+        feed_slider = QSlider(Qt.Horizontal)
+        feed_slider.setRange(5, 30)
+        feed_slider.setValue(int(self.feed_wait_seconds))
+        feed_slider.valueChanged.connect(self.on_feed_wait_seconds_changed)
+        sliders_layout.addWidget(self.feed_time_lbl)
+        sliders_layout.addWidget(feed_slider)
         config_tab_layout.addWidget(sliders_box)
 
         roi_box = QGroupBox("ระบบทดสอบการทำงาน")
@@ -5130,6 +5143,7 @@ class MainWindow(QMainWindow):
         self.all_trunk_search_region = None
         self.confirm_trunk_search_region = None
         self.hunger_limit, self.thirst_limit = 20, 20
+        self.feed_wait_seconds = 12.0
         self.auto_feed_enabled, self.auto_store_enabled = False, True
         self.diamond_mode = "car_timer"
         self.diamond_interval_minutes = 40
@@ -5139,6 +5153,8 @@ class MainWindow(QMainWindow):
         self.discord_remote_enabled = False
         self.reference_resolution = None
         self.template_reference_sizes = {}
+        self.map_mark_coordinate = None
+        self.saved_geometry = None
         if os.path.exists(self.config_path):
             try:
                 with open(self.config_path, "r", encoding="utf-8") as f:
@@ -5161,6 +5177,8 @@ class MainWindow(QMainWindow):
                     self.confirm_trunk_search_region = data.get("confirm_trunk_search_region", None)
                     self.hunger_limit = data.get("hunger_limit", 20)
                     self.thirst_limit = data.get("thirst_limit", 20)
+                    self.feed_wait_seconds = float(data.get("feed_duration", 12.0))
+                    self.worker.feed_wait_seconds = self.feed_wait_seconds
                     self.auto_feed_enabled = data.get("auto_feed_enabled", True)
                     self.auto_store_enabled = data.get("auto_store_enabled", True)
                     self.map_mark_coordinate = data.get("map_mark_coordinate", None)
@@ -5189,6 +5207,7 @@ class MainWindow(QMainWindow):
                 "all_trunk_search_region": self.all_trunk_search_region,
                 "confirm_trunk_search_region": self.confirm_trunk_search_region,
                 "hunger_limit": self.hunger_limit, "thirst_limit": self.thirst_limit,
+                "feed_duration": self.feed_wait_seconds,
                 "auto_feed_enabled": self.auto_feed_enabled, "auto_store_enabled": self.auto_store_enabled,
                 "map_mark_coordinate": self.map_mark_coordinate,
                 "diamond_mode": self.diamond_mode,
@@ -5474,6 +5493,12 @@ class MainWindow(QMainWindow):
         self.thirst_limit = value
         self.thirst_val_lbl.setText(f"{value}")
         self.worker.set_config("thirst", "limit", value)
+        self.save_config()
+
+    def on_feed_wait_seconds_changed(self, value):
+        self.feed_wait_seconds = float(value)
+        self.feed_time_lbl.setText(f"{value} วินาที")
+        self.worker.set_config("feed", "duration", value)
         self.save_config()
 
     def test_feed_sequence(self):
