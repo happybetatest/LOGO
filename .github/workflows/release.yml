@@ -46,6 +46,7 @@ jobs:
             "import site"
           ) | Set-Content "$runtime\python312._pth" -Encoding ascii
           python -m pip install --target "$runtime\Lib\site-packages" PySide6 certifi keyboard numpy opencv-python pywin32 aiohttp
+          Get-ChildItem -Path "$runtime\Lib\site-packages\PySide6" -Include "*WebEngine*", "*Quick*", "*Qml*", "*Designer*", "*3D*", "*Sensors*", "*Positioning*", "*Location*", "*Bluetooth*", "*Nfc*", "*Multimedia*", "*SpatialAudio*", "*Pdf*", "*VirtualKeyboard*", "*Help*" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
 
       - name: Create update package and manifest
         id: package
@@ -64,7 +65,11 @@ jobs:
           Copy-Item discord_remote.py release-package\templates\_app\
           Copy-Item loading_assets.py release-package\templates\_app\
           Copy-Item portable-runtime release-package\templates\_runtime -Recurse
-          Compress-Archive -Path release-package\* -DestinationPath dist\LOGO-Package.zip -Force
+          if (Test-Path "C:\Program Files\7-Zip\7z.exe") {
+            & "C:\Program Files\7-Zip\7z.exe" a -tzip -mx=7 dist\LOGO-Package.zip .\release-package\*
+          } else {
+            Compress-Archive -Path release-package\* -DestinationPath dist\LOGO-Package.zip -CompressionLevel Optimal -Force
+          }
           $hash = (Get-FileHash dist\LOGO-Package.zip -Algorithm SHA256).Hash.ToLower()
           @{
             version = $version
@@ -83,7 +88,11 @@ jobs:
           Copy-Item discord_remote.py beta-package\templates\_app\
           Copy-Item loading_assets.py beta-package\templates\_app\
           Copy-Item portable-runtime beta-package\templates\_runtime -Recurse
-          Compress-Archive -Path beta-package\* -DestinationPath dist\LOGO-Beta-Package.zip -Force
+          if (Test-Path "C:\Program Files\7-Zip\7z.exe") {
+            & "C:\Program Files\7-Zip\7z.exe" a -tzip -mx=7 dist\LOGO-Beta-Package.zip .\beta-package\*
+          } else {
+            Compress-Archive -Path beta-package\* -DestinationPath dist\LOGO-Beta-Package.zip -CompressionLevel Optimal -Force
+          }
           $betaHash = (Get-FileHash dist\LOGO-Beta-Package.zip -Algorithm SHA256).Hash.ToLower()
           @{
             version = $version

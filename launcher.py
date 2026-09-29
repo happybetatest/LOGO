@@ -51,6 +51,43 @@ def request_bytes(url, timeout=30, retries=3):
     raise last_error
 
 
+def download_file(url, target_path, status_callback=None, timeout=600, retries=5):
+    last_error = None
+    for attempt in range(retries):
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "*/*",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=timeout, context=HTTPS_CONTEXT) as resp:
+                total_len = int(resp.headers.get("Content-Length", 0))
+                downloaded = 0
+                with open(target_path, "wb") as f_out:
+                    while True:
+                        chunk = resp.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        f_out.write(chunk)
+                        downloaded += len(chunk)
+                        if status_callback and total_len > 0:
+                            pct = int(10 + (downloaded / total_len) * 55)
+                            mb_cur = downloaded / (1024 * 1024)
+                            mb_tot = total_len / (1024 * 1024)
+                            status_callback(
+                                f"กำลังดาวน์โหลดแพ็กเกจล่าสุด… ({mb_cur:.1f}/{mb_tot:.1f} MB)",
+                                pct,
+                            )
+            return True
+        except Exception as err:
+            last_error = err
+            if attempt < retries - 1:
+                time.sleep(2.0 * (attempt + 1))
+    raise last_error
+
+
 def sha256_file(path):
     digest = hashlib.sha256()
     with open(path, "rb") as stream:
@@ -116,9 +153,11 @@ class UpdateWorker(QThread):
                 os.makedirs(APP_DIR, exist_ok=True)
                 with tempfile.TemporaryDirectory(prefix="fivem-update-") as temporary:
                     archive_path = os.path.join(temporary, PACKAGE_ASSET)
-                    package = request_bytes(assets[PACKAGE_ASSET], timeout=120)
-                    with open(archive_path, "wb") as stream:
-                        stream.write(package)
+                    
+                    def on_dl_progress(detail_msg, pct):
+                        self.status.emit(f"กำลังบังคับอัปเดตเป็นเวอร์ชัน {remote_version}", detail_msg, pct)
+
+                    download_file(assets[PACKAGE_ASSET], archive_path, status_callback=on_dl_progress, timeout=600, retries=5)
                     self.status.emit(
                         f"กำลังบังคับอัปเดตเป็นเวอร์ชัน {remote_version}",
                         "กำลังตรวจสอบความถูกต้องของไฟล์…",
