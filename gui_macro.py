@@ -608,9 +608,9 @@ class DiscordRemoteWorker(QObject):
                 f"🚗 `{pfx}map2` : **เปิดแผนที่ (P) และปักหมุดพาวรถ (Car Pound 2/2) ให้อัตโนมัติ**\n"
                 f"🚙 `{pfx}car` หรือ `{pfx}เบิกรถ` : **กด E ค้าง 2วิ ➔ เลือกรถ ➔ กด Select Vehicle ➔ รัดเข็มขัด**\n"
                 f"🚘 `{pfx}drive` หรือ `{pfx}ขับออโต้` : **กด '-' (ข) ➔ คลิกเปิด Auto Drive อัตโนมัติ**\n"
-                f"📦 `{pfx}check` หรือ `{pfx}bag` : **เปิดกระเป๋า ตรวจเช็คน้ำผึ้ง/กระเป๋า และถ่ายรูปส่งกลับมา**\n"
+                f"📦 `{pfx}check` หรือ `{pfx}bag` : **เปิดกระเป๋า ตรวจเช็คทองแดง/กระเป๋า และถ่ายรูปส่งกลับมา**\n"
                 f"🚪 `{pfx}close` หรือ `{pfx}ปิดกระเป๋า` หรือ `{pfx}t` : **สั่งกด T เพื่อปิดกระเป๋าทันที**\n"
-                f"🗑️ `{pfx}discard` หรือ `{pfx}ทิ้งน้ำผึ้ง` : **สั่งทิ้งน้ำผึ้ง กดยืนยัน และกลับไปเริ่มฟาร์มต่อให้อัตโนมัติ**\n"
+                f"🗑️ `{pfx}discard` หรือ `{pfx}ทิ้งทองแดง` : **สั่งทิ้งทองแดง กดยืนยัน และกลับไปเริ่มฟาร์มต่อให้อัตโนมัติ**\n"
                 f"📸 `{pfx}screen` : ถ่ายภาพหน้าจอ FiveM สดๆ\n"
                 f"📊 `{pfx}status` : ตรวจสอบสถานะการทำงานปัจจุบัน\n"
                 f"🟢 `{pfx}start` : เริ่มการทำงานของบอท (F9)\n"
@@ -651,7 +651,7 @@ class DiscordRemoteWorker(QObject):
             return
 
         # 3. CHECK BAG & SEND SCREENSHOT
-        if main_cmd in ("check", "bag", "กระเป๋า", "น้ำผึ้ง", "honey"):
+        if main_cmd in ("check", "bag", "กระเป๋า", "ทองแดง", "copper"):
             wait_id = send_discord_rest_message(
                 self.bot_token, channel_id,
                 f"{tag_prefix} ⏳ กำลังสลับไป FiveM และเปิดกระเป๋าเพื่อถ่ายรูป กรุณารอสักครู่...",
@@ -673,7 +673,7 @@ class DiscordRemoteWorker(QObject):
 
                 caption = (
                     f"{tag_prefix} 📦 **[ผลการตรวจสอบกระเป๋า FiveM]**\n"
-                    f"• น้ำผึ้ง: {gold_info}\n"
+                    f"• ทองแดง: {gold_info}\n"
                     f"• สถานะบอท: {status_info}\n"
                     f"• เวลา: <t:{int(time.time())}:T>"
                 )
@@ -700,10 +700,10 @@ class DiscordRemoteWorker(QObject):
             return
 
         # 4. DISCARD GOLD & RESUME FARMING
-        if main_cmd in ("discard", "dump", "drop", "ทิ้งน้ำผึ้ง", "ทิ้ง"):
+        if main_cmd in ("discard", "dump", "drop", "ทิ้งทองแดง", "ทิ้ง"):
             wait_id = send_discord_rest_message(
                 self.bot_token, channel_id,
-                f"{tag_prefix} 🗑️ กำลังเปิดกระเป๋าเพื่อกดทิ้งน้ำผึ้ง และเริ่มฟาร์มต่อให้อัตโนมัติ...",
+                f"{tag_prefix} 🗑️ กำลังเปิดกระเป๋าเพื่อกดทิ้งทองแดง และเริ่มฟาร์มต่อให้อัตโนมัติ...",
                 reply_to_message_id=msg_id
             )
             future = asyncio.Future()
@@ -737,7 +737,7 @@ class DiscordRemoteWorker(QObject):
             except asyncio.TimeoutError:
                 send_discord_rest_message(
                     self.bot_token, channel_id,
-                    f"{tag_prefix} ⚠️ คำสั่งหมดเวลา: การทิ้งน้ำผึ้งใช้เวลานานเกินกำหนด",
+                    f"{tag_prefix} ⚠️ คำสั่งหมดเวลา: การทิ้งทองแดงใช้เวลานานเกินกำหนด",
                     reply_to_message_id=msg_id
                 )
             return
@@ -901,7 +901,7 @@ class DiscordRemoteWorker(QObject):
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"• สถานะบอท: {res.get('running_text', 'ไม่ระบุ')}\n"
                 f"• การเชื่อมต่อ FiveM: {res.get('fivem_connected', 'ไม่ระบุ')}\n"
-                f"• เป้าหมายทิ้งน้ำผึ้งรอบนี้: {res.get('gold_target', '-')}\n"
+                f"• เป้าหมายทิ้งทองแดงรอบนี้: {res.get('gold_target', '-')}\n"
                 f"• โหมดเก็บของ: {res.get('diamond_mode', 'ไม่ระบุ')}\n"
                 f"• ระบบอาหาร/น้ำ: {res.get('food_status', 'ไม่ระบุ')}\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -1481,13 +1481,13 @@ class MacroWorker(QThread):
 
     def send_diamond_full_webhook(self):
         if not self.discord_webhook_url:
-            self.log_signal.emit("[Discord] น้ำผึ้งเต็ม 60/60 แต่ยังไม่ได้ตั้งค่า Webhook")
+            self.log_signal.emit("[Discord] ทองแดงเต็ม 60/60 แต่ยังไม่ได้ตั้งค่า Webhook")
             return
         machine_name = os.environ.get("COMPUTERNAME", "Unknown PC")
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         payload = json.dumps({
             "username": "FiveM Farming",
-            "content": f"💎 น้ำผึ้งเต็ม 60/60\\nเครื่อง: {machine_name}\\nเวลา: {timestamp}"
+            "content": f"💎 ทองแดงเต็ม 60/60\\nเครื่อง: {machine_name}\\nเวลา: {timestamp}"
         }, ensure_ascii=False).encode("utf-8")
         request = urllib.request.Request(
             self.discord_webhook_url,
@@ -1504,7 +1504,7 @@ class MacroWorker(QThread):
             ) as response:
                 if response.status not in (200, 204):
                     raise RuntimeError(f"Discord HTTP {response.status}")
-            self.log_signal.emit("[Discord] แจ้งเตือนน้ำผึ้งเต็ม 60/60 สำเร็จ")
+            self.log_signal.emit("[Discord] แจ้งเตือนทองแดงเต็ม 60/60 สำเร็จ")
         except Exception as error:
             self.log_signal.emit(f"[Discord] ส่งแจ้งเตือนไม่สำเร็จ: {type(error).__name__}: {error}")
 
@@ -1975,7 +1975,7 @@ class MacroWorker(QThread):
                 if count != self.gold_estimated_count:
                     self.gold_estimated_count = count
                     self.log_signal.emit(
-                        f"[ระบบน้ำผึ้ง] ตรวจพบน้ำผึ้ง: {count}/60 (เป้าหมายทิ้ง: {self.gold_discard_target}/60)"
+                        f"[ระบบทองแดง] ตรวจพบทองแดง: {count}/60 (เป้าหมายทิ้ง: {self.gold_discard_target}/60)"
                     )
                 return self.gold_estimated_count
             return self.gold_estimated_count
@@ -1999,7 +1999,7 @@ class MacroWorker(QThread):
         self.gold_disposal_started_at = 0.0
         self.gold_disposal_cooldown_until = time.time() + 30.0
         self.log_signal.emit(
-            f"[ระบบน้ำผึ้ง] เป้าหมายทิ้งรอบใหม่: "
+            f"[ระบบทองแดง] เป้าหมายทิ้งรอบใหม่: "
             f"{self.gold_discard_target}/60"
         )
 
@@ -2218,13 +2218,13 @@ class MacroWorker(QThread):
         if now - self.character_idle_since < 20.0:
             return False
         self.log_signal.emit(
-            "[ระบบน้ำผึ้ง] ตรวจพบตัวละครยืนนิ่ง 20 วินาที กำลังเปิดกระเป๋าเช็คน้ำผึ้งเต็ม"
+            "[ระบบทองแดง] ตรวจพบตัวละครยืนนิ่ง 20 วินาที กำลังเปิดกระเป๋าเช็คทองแดงเต็ม"
         )
-        if not self.ensure_inventory_open("[ระบบน้ำผึ้ง]"):
+        if not self.ensure_inventory_open("[ระบบทองแดง]"):
             self.idle_fail_streak += 1
             if self.idle_fail_streak >= 2:
                 self.log_signal.emit(
-                    "[ระบบน้ำผึ้ง] ⚠️ ตรวจพบตัวละครยืนนิ่งและเปิดกระเป๋าไม่สำเร็จ กำลังพยายามกู้คืนระบบฟาร์ม (กด E เริ่มงานใหม่)..."
+                    "[ระบบทองแดง] ⚠️ ตรวจพบตัวละครยืนนิ่งและเปิดกระเป๋าไม่สำเร็จ กำลังพยายามกู้คืนระบบฟาร์ม (กด E เริ่มงานใหม่)..."
                 )
                 self.send_bug_webhook(
                     "ตัวละครยืนนิ่งและเปิดกระเป๋าไม่สำเร็จ",
@@ -2233,7 +2233,7 @@ class MacroWorker(QThread):
                     cooldown_seconds=120.0
                 )
                 # Auto-recovery: Close any stuck window and resume farming
-                self.ensure_inventory_closed("[ระบบน้ำผึ้ง]")
+                self.ensure_inventory_closed("[ระบบทองแดง]")
                 time.sleep(0.5)
                 self.resume_farming_after_inventory()
                 self.idle_fail_streak = 0
@@ -2254,9 +2254,9 @@ class MacroWorker(QThread):
 
     def resume_farming_after_inventory(self):
         """Close the bag, enter the job interaction and click Auto Farm."""
-        if not self.ensure_inventory_closed("[ระบบน้ำผึ้ง]"):
+        if not self.ensure_inventory_closed("[ระบบทองแดง]"):
             return False
-        self.log_signal.emit("[ระบบน้ำผึ้ง] กำลังเริ่มระบบฟาร์มใหม่...")
+        self.log_signal.emit("[ระบบทองแดง] กำลังเริ่มระบบฟาร์มใหม่...")
         if not self.hold_game_key("e", 1.5):
             return False
         time.sleep(1.5)
@@ -2265,18 +2265,18 @@ class MacroWorker(QThread):
             return False
         result = self.find_image(bg_img, "templates/auto_farm.png", 0.70)
         if not result or result[0] is None:
-            self.log_signal.emit("[ระบบน้ำผึ้ง] ไม่พบปุ่ม Auto Farm หลังปิดกระเป๋า")
+            self.log_signal.emit("[ระบบทองแดง] ไม่พบปุ่ม Auto Farm หลังปิดกระเป๋า")
             return False
         self.bg_click(self.hwnd, result[0], result[1])
         time.sleep(1.0)
         # Farming is monitored from the inventory screen.  Re-open it only
         # after Auto Farm has been clicked, matching the food and car cycles.
-        if not self.ensure_inventory_open("[ระบบน้ำผึ้ง]"):
+        if not self.ensure_inventory_open("[ระบบทองแดง]"):
             self.log_signal.emit(
-                "[ระบบน้ำผึ้ง] เริ่มฟาร์มแล้ว แต่เปิดกระเป๋ากลับไม่สำเร็จ"
+                "[ระบบทองแดง] เริ่มฟาร์มแล้ว แต่เปิดกระเป๋ากลับไม่สำเร็จ"
             )
             return False
-        self.log_signal.emit("[ระบบน้ำผึ้ง] เริ่มระบบฟาร์มใหม่สำเร็จ")
+        self.log_signal.emit("[ระบบทองแดง] เริ่มระบบฟาร์มใหม่สำเร็จ")
         return True
 
     def is_inventory_open(self, bg_img=None):
@@ -2294,7 +2294,7 @@ class MacroWorker(QThread):
             if int(h_img * 0.15) <= by <= int(h_img * 0.80):
                 return True
 
-        # 2. ตรวจจับไอเทมน้ำผึ้งในกระเป๋า
+        # 2. ตรวจจับไอเทมทองแดงในกระเป๋า
         for tpl, th in (
             ("templates/gold_ore.png", 0.50),
             ("templates/diamond_icon.png", 0.50),
@@ -2913,7 +2913,7 @@ class MacroWorker(QThread):
             confirmed = self.diamond_full_streak >= 2
             status = "พบ 60/60 กำลังยืนยันภาพซ้ำ"
             if confirmed:
-                status = "น้ำผึ้งเต็ม 60/60 — หยุดฟาร์มแล้ว"
+                status = "ทองแดงเต็ม 60/60 — หยุดฟาร์มแล้ว"
             self.diamond_preview_signal.emit(slot_img, val, confirmed, status)
             if confirmed and not self.diamond_full_notified:
                 self.diamond_full_notified = True
@@ -2927,7 +2927,7 @@ class MacroWorker(QThread):
             val = full_result[2] if full_result else 0.0
             self.diamond_preview_signal.emit(
                 np.zeros((10, 10, 3), dtype=np.uint8),
-                val, False, "โหมดไม่มีรถ: รอน้ำผึ้งเต็ม 60/60"
+                val, False, "โหมดไม่มีรถ: รอทองแดงเต็ม 60/60"
             )
 
     def execute_remote_check_bag(self):
@@ -2953,7 +2953,7 @@ class MacroWorker(QThread):
                     "gold_info": "ไม่ทราบ",
                 }
 
-            gold_info = f"เป้าหมายทิ้ง: {self.gold_discard_target}/60 (ประเมินน้ำผึ้งปัจจุบัน: {self.gold_estimated_count})"
+            gold_info = f"เป้าหมายทิ้ง: {self.gold_discard_target}/60 (ประเมินทองแดงปัจจุบัน: {self.gold_estimated_count})"
             status_info = "🟢 กำลังฟาร์ม" if self.is_running else "🔴 หยุดพัก"
 
             temp_path = get_writable_path("discord_bag_capture.png")
@@ -3018,10 +3018,12 @@ class MacroWorker(QThread):
                 self.ensure_inventory_open("[Discord Remote]")
                 time.sleep(0.8)
 
-            # ค้นหาน้ำผึ้งแล้วคลิกขวาเพื่อเปิดเมนู Discard
-            ore_res = self.find_image(bg_img, "templates/honey.png", 0.65)
+            # ค้นหาทองแดงแล้วคลิกขวาเพื่อเปิดเมนู Discard
+            ore_res = self.find_image(bg_img, "templates/gold_ore.png", 0.65)
             if not ore_res or ore_res[0] is None:
-                ore_res = self.find_image(bg_img, "templates/gold_ore.png", 0.65)
+                ore_res = self.find_image(bg_img, "templates/copper.png", 0.65)
+            if not ore_res or ore_res[0] is None:
+                ore_res = self.find_image(bg_img, "templates/honey.png", 0.65)
             if ore_res and ore_res[0] is not None:
                 self.bg_right_click(self.hwnd, ore_res[0], ore_res[1])
                 time.sleep(0.5)
@@ -3094,7 +3096,7 @@ class MacroWorker(QThread):
             return {
                 "success": True,
                 "message": (
-                    f"ทิ้งน้ำผึ้งสำเร็จและเริ่มฟาร์มต่อเรียบร้อย! "
+                    f"ทิ้งทองแดงสำเร็จและเริ่มฟาร์มต่อเรียบร้อย! "
                     f"(เป้าหมายรอบใหม่: {self.gold_discard_target}/60)"
                 ),
                 "image_path": temp_path if os.path.isfile(temp_path) else None,
@@ -3821,10 +3823,10 @@ class MacroWorker(QThread):
                     and time.time() - self.gold_disposal_started_at > 20.0
                 ):
                     self.log_signal.emit(
-                        "[ระบบน้ำผึ้ง] ขั้นตอนทิ้งน้ำผึ้งหมดเวลา ยกเลิกรอบนี้"
+                        "[ระบบทองแดง] ขั้นตอนทิ้งทองแดงหมดเวลา ยกเลิกรอบนี้"
                     )
                     self.send_bug_webhook(
-                        "ทิ้งน้ำผึ้งหมดเวลา",
+                        "ทิ้งทองแดงหมดเวลา",
                         f"ค้างอยู่ที่ขั้นตอน {self.gold_disposal_stage}",
                         alert_key="gold_disposal_timeout",
                     )
@@ -3919,7 +3921,7 @@ class MacroWorker(QThread):
                         self.choose_next_gold_target()
                         if was_idle_recovery:
                             self.log_signal.emit(
-                                "[ระบบน้ำผึ้ง] ทิ้งน้ำผึ้งเสร็จแล้ว รอ 10 วินาทีก่อนออกจากกระเป๋า"
+                                "[ระบบทองแดง] ทิ้งทองแดงเสร็จแล้ว รอ 10 วินาทีก่อนออกจากกระเป๋า"
                             )
                             time.sleep(10.0)
                             self.idle_inventory_recovery = False
@@ -3942,7 +3944,7 @@ class MacroWorker(QThread):
                     and time.time() > self.idle_inventory_check_until
                 ):
                     self.log_signal.emit(
-                        "[ระบบน้ำผึ้ง] ตรวจแล้วไม่พบน้ำผึ้งเต็ม กำลังปิดกระเป๋าและกลับไปฟาร์ม"
+                        "[ระบบทองแดง] ตรวจแล้วไม่พบทองแดงเต็ม กำลังปิดกระเป๋าและกลับไปฟาร์ม"
                     )
                     self.idle_inventory_recovery = False
                     self.idle_inventory_check_until = 0.0
@@ -4035,7 +4037,7 @@ class MacroWorker(QThread):
                                     np.zeros((10, 10, 3), dtype=np.uint8),
                                 )
                                 self.log_signal.emit(
-                                    "[ระบบน้ำผึ้ง] ยืนยันน้ำผึ้งเต็ม 60/60 จากภาพสำรอง กำลังทิ้งน้ำผึ้ง"
+                                    "[ระบบทองแดง] ยืนยันทองแดงเต็ม 60/60 จากภาพสำรอง กำลังทิ้งทองแดง"
                                 )
                     if can_dispose_now and (
                         count_result or random_target_reached
@@ -4051,9 +4053,9 @@ class MacroWorker(QThread):
                                 )
                             )
                             self.log_signal.emit(
-                                f"[ระบบน้ำผึ้ง] ถึงเป้าหมายสุ่ม "
+                                f"[ระบบทองแดง] ถึงเป้าหมายสุ่ม "
                                 f"{self.gold_discard_target}/60 "
-                                "กำลังทิ้งน้ำผึ้ง"
+                                "กำลังทิ้งทองแดง"
                             )
                         count_x, count_y, count_score, count_crop = count_result
                         preview_text_score = count_score
@@ -4245,13 +4247,13 @@ class ReadmeDialog(QDialog):
                     </tr>
                     <tr style="background-color: #ffffff; border-bottom: 1px solid #e2e8f0;">
                         <td style="padding: 8px 10px;"><b style="background:#fef3c7; color:#92400e; padding:2px 6px; border-radius:4px; font-family:Consolas;">!discard</b></td>
-                        <td style="padding: 8px 10px;">!ทิ้งน้ำผึ้ง, !gold</td>
-                        <td style="padding: 8px 10px;">เปิดกระเป๋า ทิ้งน้ำผึ้งอัตโนมัติ กดยืนยัน และเริ่มฟาร์มต่ออัตโนมัติ</td>
+                        <td style="padding: 8px 10px;">!ทิ้งทองแดง, !gold</td>
+                        <td style="padding: 8px 10px;">เปิดกระเป๋า ทิ้งทองแดงอัตโนมัติ กดยืนยัน และเริ่มฟาร์มต่ออัตโนมัติ</td>
                     </tr>
                     <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
                         <td style="padding: 8px 10px;"><b style="background:#ccfbf1; color:#115e59; padding:2px 6px; border-radius:4px; font-family:Consolas;">!store</b></td>
                         <td style="padding: 8px 10px;">!ทิ้ง, !discard</td>
-                        <td style="padding: 8px 10px;">เปิดกระเป๋า ทิ้งน้ำผึ้งอัตโนมัติและเริ่มฟาร์มต่อ</td>
+                        <td style="padding: 8px 10px;">เปิดกระเป๋า ทิ้งทองแดงอัตโนมัติและเริ่มฟาร์มต่อ</td>
                     </tr>
                     <tr style="background-color: #ffffff; border-bottom: 1px solid #e2e8f0;">
                         <td style="padding: 8px 10px;"><b style="background:#ffedd5; color:#9a3412; padding:2px 6px; border-radius:4px; font-family:Consolas;">!feed</b></td>
@@ -4313,8 +4315,8 @@ class ReadmeDialog(QDialog):
                 <h3 style="color: #0d9488; margin-top: 0;">⛏️ 3. ระบบฟาร์มและจัดการไอเทม (Core Farming Engine)</h3>
                 <ul style="margin-bottom: 0; color: #334155;">
                     <li><b>Background Mode:</b> ทำงานแบบเบื้องหลังเต็มรูปแบบ สามารถย่อหน้าต่าง FiveM หรือเล่นเกม/ทำงานอื่นได้โดยไม่โดนรบกวน</li>
-                    <li><b>ระบบทิ้งน้ำผึ้ง (Auto-Discard Gold):</b> ตรวจสอบและทิ้งน้ำผึ้งลงถังขยะเมื่อถึงจำนวนที่กำหนด (เช่น 20-40 ก้อน)</li>
-                    <li><b>ระบบทิ้งน้ำผึ้งอัตโนมัติ (Auto-Discard Honey):</b> ทิ้งน้ำผึ้งเมื่อถึงเป้าหมายและเริ่มฟาร์มต่อ</li>
+                    <li><b>ระบบทิ้งทองแดง (Auto-Discard Copper):</b> ตรวจสอบและทิ้งทองแดงลงถังขยะเมื่อถึงจำนวนที่กำหนด (เช่น 20-40 ก้อน)</li>
+                    <li><b>ระบบทิ้งทองแดงอัตโนมัติ (Auto-Discard Copper):</b> ทิ้งทองแดงเมื่อถึงเป้าหมายและเริ่มฟาร์มต่อ</li>
                     <li><b>ระบบกินข้าว/น้ำ (Auto-Feed):</b> ตรวจจับระดับ HUD หลอดอาหาร/น้ำ และกดใช้จากช่อง 6 (น้ำ) และช่อง 7 (อาหาร)</li>
                 </ul>
             </div>
@@ -4415,7 +4417,7 @@ class MainWindow(QMainWindow):
         self.saved_geometry = None
         self.load_config()
         self.load_private_settings()
-        self.setWindowTitle("LOGO Farm Macro - ระบบฟาร์มน้ำผึ้งอัตโนมัติ (Background)")
+        self.setWindowTitle("LOGO Farm Macro - ระบบฟาร์มทองแดงอัตโนมัติ (Background)")
         self.setMinimumSize(480, 360)
         saved_geo = getattr(self, "saved_geometry", None)
         if saved_geo and len(saved_geo) == 4:
@@ -4477,7 +4479,7 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(12)
 
         header_layout = QHBoxLayout()
-        title_label = QLabel("LOGO Farm Macro - ฟาร์มน้ำผึ้งอัตโนมัติ (Background)")
+        title_label = QLabel("LOGO Farm Macro - ฟาร์มทองแดงอัตโนมัติ (Background)")
         title_label.setObjectName("Title")
 
         self.readme_btn = QPushButton("📖 วิธีใช้งาน (Readme)")
@@ -4588,7 +4590,7 @@ class MainWindow(QMainWindow):
         self.test_feed_btn = QPushButton("ทดสอบระบบกินข้าว/น้ำ")
         self.test_feed_btn.setStyleSheet("QPushButton { background-color: #0284c7; border: none; color: white; font-weight: bold; font-size: 12px; border-radius: 6px; padding: 8px; }")
         self.test_feed_btn.clicked.connect(self.test_feed_sequence)
-        self.test_store_btn = QPushButton("ทดสอบระบบทิ้งน้ำผึ้ง")
+        self.test_store_btn = QPushButton("ทดสอบระบบทิ้งทองแดง")
         self.test_store_btn.setStyleSheet("QPushButton { background-color: #0d9488; border: none; color: white; font-weight: bold; font-size: 12px; border-radius: 6px; padding: 8px; }")
         self.test_store_btn.clicked.connect(self.test_discard_sequence)
         roi_layout.addWidget(self.test_feed_btn)
@@ -4691,7 +4693,7 @@ class MainWindow(QMainWindow):
         self.diamond_mode_combo.currentIndexChanged.connect(self.on_diamond_mode_changed)
         self.webhook_input = QLineEdit()
         self.webhook_input.setEchoMode(QLineEdit.Password)
-        self.webhook_input.setPlaceholderText("Discord Webhook (แจ้งน้ำผึ้งเต็มและแจ้งบัค)")
+        self.webhook_input.setPlaceholderText("Discord Webhook (แจ้งทองแดงเต็มและแจ้งบัค)")
         self.webhook_input.setText(self.discord_webhook_url)
         self.webhook_input.editingFinished.connect(self.on_webhook_edited)
         toggle_layout.addWidget(self.auto_feed_cb)
@@ -4787,9 +4789,9 @@ class MainWindow(QMainWindow):
             row_layout.addWidget(btn_reg)
             layout.addLayout(row_layout)
             
-        g_gold = QGroupBox("🍯 หมวดฟาร์มน้ำผึ้ง (ในกระเป๋าตัวละคร)")
+        g_gold = QGroupBox("⛏️ หมวดฟาร์มทองแดง (ในกระเป๋าตัวละคร)")
         l_gold = QVBoxLayout(g_gold)
-        create_crop_row(l_gold, "รูปขวดน้ำผึ้ง (Honey):", "gold_ore.png", "gold_ore")
+        create_crop_row(l_gold, "รูปแร่ทองแดง (Copper):", "gold_ore.png", "gold_ore")
         create_crop_row(l_gold, "รูปตัวเลขจำนวน (X/60):", "gold_text.png", "gold_text")
         create_crop_row(l_gold, "ปุ่มทำลาย:", "destroy.png", "destroy")
         create_crop_row(l_gold, "ปุ่มทั้งหมด (กระเป๋า):", "all.png", "all")
@@ -4849,7 +4851,7 @@ class MainWindow(QMainWindow):
             monitors_layout.addWidget(card)
             self.monitor_cards[name] = {"led": led, "conf": conf_bar, "frame": card}
 
-        create_monitor_card("gold", "1. น้ำผึ้ง")
+        create_monitor_card("gold", "1. ทองแดง")
         create_monitor_card("destroy", "2. ทิ้ง (Discard)")
         create_monitor_card("all", "3. ทั้งหมด (↗↗)")
         create_monitor_card("confirm", "4. ยืนยัน Discard")
@@ -4879,7 +4881,7 @@ class MainWindow(QMainWindow):
         self.gold_tab = QWidget()
         self.gold_tab.setObjectName("PreviewTab")
         gold_layout = QHBoxLayout(self.gold_tab)
-        self.lbl_gold_ore = QLabel("รอรูปน้ำผึ้ง...")
+        self.lbl_gold_ore = QLabel("รอรูปทองแดง...")
         self.lbl_gold_ore.setFixedSize(90, 45)
         self.lbl_gold_ore.setStyleSheet("border: 1px solid #cbd5e1; background-color: #f1f5f9;")
         self.lbl_gold_text = QLabel("รอรูปตัวเลข...")
@@ -4888,7 +4890,7 @@ class MainWindow(QMainWindow):
         gold_layout.addWidget(self.lbl_gold_ore)
         gold_layout.addWidget(self.lbl_gold_text)
         gold_data_layout = QVBoxLayout()
-        self.lbl_gold_ore_val = QLabel("ความเหมือนน้ำผึ้ง: - %")
+        self.lbl_gold_ore_val = QLabel("ความเหมือนทองแดง: - %")
         self.lbl_gold_text_val = QLabel("ความเหมือนตัวเลข: - %")
         self.lbl_gold_thresh_val = QLabel("เกณฑ์ตัดสินใจทิ้ง: - %")
         gold_data_layout.addWidget(self.lbl_gold_ore_val)
@@ -4909,7 +4911,7 @@ class MainWindow(QMainWindow):
         diamond_data_layout.addWidget(self.lbl_diamond_status)
         diamond_layout.addLayout(diamond_data_layout)
         self.preview_tabs.addTab(self.hud_tab, "พรีวิวหลอดอาหาร/น้ำ")
-        self.preview_tabs.addTab(self.gold_tab, "พรีวิวสแกนน้ำผึ้ง")
+        self.preview_tabs.addTab(self.gold_tab, "พรีวิวสแกนทองแดง")
         # self.preview_tabs.addTab(self.diamond_tab, "พรีวิวสแกนสำรอง")
         right_panel.addWidget(self.preview_tabs)
 
@@ -4957,7 +4959,7 @@ class MainWindow(QMainWindow):
             self.hotkey_close_signal.emit,
             trigger_on_release=True
         )
-        self.write_log("ยินดีต้อนรับสู่แผงควบคุมระบบฟาร์มทิ้งน้ำผึ้งอัตโนมัติ (Background)")
+        self.write_log("ยินดีต้อนรับสู่แผงควบคุมระบบฟาร์มทิ้งทองแดงอัตโนมัติ (Background)")
         self.setup_realtime_updater()
 
         self.discord_remote = DiscordRemoteWorker() if DiscordRemoteWorker else None
@@ -5059,7 +5061,7 @@ class MainWindow(QMainWindow):
             if text_crop.size > 100:
                 h, w, c = text_crop.shape
                 self.lbl_gold_text.setPixmap(QPixmap.fromImage(QImage(text_crop.tobytes(), w, h, c*w, QImage.Format_BGR888)).scaled(self.lbl_gold_text.width(), self.lbl_gold_text.height(), Qt.KeepAspectRatio))
-            self.lbl_gold_ore_val.setText(f"การเจอน้ำผึ้ง: {ore_score*100:.1f}%")
+            self.lbl_gold_ore_val.setText(f"การเจอทองแดง: {ore_score*100:.1f}%")
             self.lbl_gold_text_val.setText(f"ความเหมือนตัวเลข: {text_score*100:.1f}%")
             self.lbl_gold_thresh_val.setText(f"เกณฑ์ตัดสินใจทิ้ง: {target_thresh*100:.1f}%")
         except Exception: pass

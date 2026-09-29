@@ -277,8 +277,8 @@ class DiscordRemoteWorker(QObject):
             help_text = (
                 "🎮 **FiveM Farming Macro — เมนูคำสั่งควบคุมระยะไกล**\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                "📦 `!check` หรือ `!bag` : **เปิดกระเป๋า ตรวจเช็คน้ำผึ้ง/กระเป๋า และถ่ายรูปส่งกลับมา**\n"
-                "🗑️ `!discard` หรือ `!ทิ้งน้ำผึ้ง` : **สั่งทิ้งน้ำผึ้ง กดยืนยัน และกลับไปเริ่มฟาร์มต่อให้อัตโนมัติ**\n"
+                "📦 `!check` หรือ `!bag` : **เปิดกระเป๋า ตรวจเช็คทองแดง/กระเป๋า และถ่ายรูปส่งกลับมา**\n"
+                "🗑️ `!discard` หรือ `!ทิ้งทองแดง` : **สั่งทิ้งทองแดง กดยืนยัน และกลับไปเริ่มฟาร์มต่อให้อัตโนมัติ**\n"
                 "📸 `!screen` : ถ่ายภาพหน้าจอ FiveM สดๆ\n"
                 "📊 `!status` : ตรวจสอบสถานะการทำงานปัจจุบัน\n"
                 "🟢 `!start` : เริ่มการทำงานของบอท (F9)\n"
@@ -291,7 +291,7 @@ class DiscordRemoteWorker(QObject):
             return
 
         # 2. CHECK BAG & SEND SCREENSHOT
-        if cmd in ("check", "bag", "กระเป๋า", "น้ำผึ้ง", "honey"):
+        if cmd in ("check", "bag", "กระเป๋า", "ทองแดง", "copper"):
             wait_id = send_discord_rest_message(
                 self.bot_token, channel_id,
                 "⏳ กำลังสลับไป FiveM และเปิดกระเป๋าเพื่อถ่ายรูป กรุณารอสักครู่...",
@@ -313,7 +313,7 @@ class DiscordRemoteWorker(QObject):
 
                 caption = (
                     f"📦 **[ผลการตรวจสอบกระเป๋า FiveM]**\n"
-                    f"• น้ำผึ้ง: {gold_info}\n"
+                    f"• ทองแดง: {gold_info}\n"
                     f"• สถานะบอท: {status_info}\n"
                     f"• เวลา: <t:{int(time.time())}:T>"
                 )
@@ -340,10 +340,10 @@ class DiscordRemoteWorker(QObject):
             return
 
         # 3. DISCARD GOLD & RESUME FARMING
-        if cmd in ("discard", "dump", "drop", "ทิ้งน้ำผึ้ง", "ทิ้ง"):
+        if cmd in ("discard", "dump", "drop", "ทิ้งทองแดง", "ทิ้ง"):
             wait_id = send_discord_rest_message(
                 self.bot_token, channel_id,
-                "🗑️ กำลังเปิดกระเป๋าเพื่อกดทิ้งน้ำผึ้ง และเริ่มฟาร์มต่อให้อัตโนมัติ...",
+                "🗑️ กำลังเปิดกระเป๋าเพื่อกดทิ้งทองแดง และเริ่มฟาร์มต่อให้อัตโนมัติ...",
                 reply_to_message_id=msg_id
             )
             future = asyncio.Future()
@@ -377,7 +377,7 @@ class DiscordRemoteWorker(QObject):
             except asyncio.TimeoutError:
                 send_discord_rest_message(
                     self.bot_token, channel_id,
-                    "⚠️ คำสั่งหมดเวลา: การทิ้งน้ำผึ้งใช้เวลานานเกินกำหนด",
+                    "⚠️ คำสั่งหมดเวลา: การทิ้งทองแดงใช้เวลานานเกินกำหนด",
                     reply_to_message_id=msg_id
                 )
             return
@@ -501,7 +501,7 @@ class DiscordRemoteWorker(QObject):
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"• สถานะบอท: {res.get('running_text', 'ไม่ระบุ')}\n"
                 f"• การเชื่อมต่อ FiveM: {res.get('fivem_connected', 'ไม่ระบุ')}\n"
-                f"• เป้าหมายทิ้งน้ำผึ้งรอบนี้: {res.get('gold_target', '-')}\n"
+                f"• เป้าหมายทิ้งทองแดงรอบนี้: {res.get('gold_target', '-')}\n"
                 
                 f"• ระบบอาหาร/น้ำ: {res.get('food_status', 'ไม่ระบุ')}\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
