@@ -12,16 +12,16 @@
         "confirm": 8.0
     },
     "hud_region": [
-        218,
-        837,
-        74,
-        35
+        267,
+        835,
+        88,
+        43
     ],
     "auto_farm_region": [
-        704,
-        519,
-        93,
-        32
+        353,
+        79,
+        813,
+        793
     ],
     "bag_region": [
         674,
@@ -80,28 +80,18 @@
     ],
     "hunger_limit": 10,
     "thirst_limit": 10,
-    "auto_feed_enabled": true,
+    "feed_duration": 12.0,
+    "auto_feed_enabled": false,
     "auto_store_enabled": true,
-    "map_mark_coordinate": [
-        1522,
-        265
-    ],
+    "map_mark_coordinate": null,
     "diamond_mode": "car_timer",
     "diamond_interval_minutes": 40,
-    "reference_resolution": [
-        1600,
-        900
-    ],
-    "template_reference_sizes": {
-        "map_mine_blip.png": [
-            1600,
-            900
-        ]
-    },
+    "reference_resolution": null,
+    "template_reference_sizes": {},
     "window_geometry": [
-        739,
+        1219,
         30,
-        1160,
-        914
+        680,
+        520
     ]
 }
