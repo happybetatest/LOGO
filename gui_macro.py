@@ -616,7 +616,7 @@ class DiscordRemoteWorker(QObject):
                 f"🟢 `{pfx}start` : เริ่มการทำงานของบอท (F9)\n"
                 f"🔴 `{pfx}stop` : หยุดพักบอทชั่วคราว (F9)\n"
                 f"🍗 `{pfx}feed` : สั่งให้ตัวละครกินน้ำ (ช่อง 6) และอาหาร (ช่อง 7)\n"
-                
+                f"💎 `{pfx}store` หรือ `{pfx}เก็บเพชร` : **สั่งเก็บเพชรลงท้ายรถทันที**\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"*Prefix ปัจจุบัน: `{pfx}` (หรือแท็ก @{self.bot_name} ได้โดยตรง) 🔒*"
             )
@@ -847,10 +847,10 @@ class DiscordRemoteWorker(QObject):
             return
 
         # 9. STORE DIAMONDS
-        if False and main_cmd in ("store", "เก็บของ", "เก็บของ", "รถ", "diamond", "ไอเทม"):
+        if main_cmd in ("store", "เก็บเพชร", "เก็บของ", "รถ", "diamond", "เพชร"):
             wait_id = send_discord_rest_message(
                 self.bot_token, channel_id,
-                f"{tag_prefix} 💎 กำลังเริ่มกระบวนการเก็บของลงท้ายรถ...",
+                f"{tag_prefix} 💎 กำลังเริ่มกระบวนการเก็บเพชรลงท้ายรถ...",
                 reply_to_message_id=msg_id
             )
             future = asyncio.Future()
@@ -864,7 +864,7 @@ class DiscordRemoteWorker(QObject):
             try:
                 res = await asyncio.wait_for(future, timeout=35.0)
                 img_path = res.get("image_path")
-                msg_text = res.get("message", "กระบวนการเก็บของเสร็จสิ้น")
+                msg_text = res.get("message", "กระบวนการเก็บเพชรเสร็จสิ้น")
                 send_discord_rest_message(
                     self.bot_token, channel_id,
                     content=f"{tag_prefix} 💎 **{msg_text}**",
@@ -881,7 +881,7 @@ class DiscordRemoteWorker(QObject):
             except asyncio.TimeoutError:
                 send_discord_rest_message(
                     self.bot_token, channel_id,
-                    f"{tag_prefix} ⚠️ กระบวนการเก็บของหมดเวลา",
+                    f"{tag_prefix} ⚠️ กระบวนการเก็บเพชรหมดเวลา",
                     reply_to_message_id=msg_id
                 )
             return
@@ -1325,7 +1325,7 @@ class MacroWorker(QThread):
         self.confirm_trunk_search_region = None
         self.hunger_limit = 20
         self.thirst_limit = 20
-        self.feed_wait_seconds = 12.0
+        self.feed_wait_seconds = 8.0
         self.force_feed_test = False
         self.force_store_test = False
         self.last_hud_check_time = 0.0
@@ -1337,7 +1337,7 @@ class MacroWorker(QThread):
         self.diamond_full_notified = False
         self.diamond_cycle_started_at = time.time()
         self.diamond_mode = "car_timer"
-        self.diamond_interval_minutes = 40
+        self.diamond_interval_minutes = 20
         self.discord_webhook_url = ""
         self.discord_bot_token = ""
         self.discord_admin_channel_id = ""
@@ -1984,10 +1984,12 @@ class MacroWorker(QThread):
 
     def choose_next_gold_target(self):
         choices = [
-            value for value in range(20, 41)
+            value for value in range(10, 24)
             if self.previous_gold_discard_target is None
-            or abs(value - self.previous_gold_discard_target) > 3
+            or abs(value - self.previous_gold_discard_target) > 2
         ]
+        if not choices:
+            choices = list(range(10, 24))
         self.gold_discard_target = random.choice(choices)
         self.previous_gold_discard_target = self.gold_discard_target
         self.gold_estimated_count = 0
@@ -2386,13 +2388,7 @@ class MacroWorker(QThread):
         self.safe_sleep(0.8)
         if not self.is_running or self.is_exiting: return False
         
-        # 2. ปลดล็อคอนิเมชันขุด/เอาแขนลง (กด X)
-        self.log_signal.emit("[ระบบป้อนอาหาร] กดปุ่ม X ปลดล็อคอนิเมชัน...")
-        self.send_game_key("x", duration=0.20)
-        self.safe_sleep(1.0)
-        if not self.is_running or self.is_exiting: return False
-        
-        # 3. กินน้ำ (ช่อง 6)
+        # 2. กินน้ำ (ช่อง 6) โดยไม่กดปุ่ม X เพื่อไม่ยกเลิกขั้นตอนฟาร์ม
         if need_water:
             self.log_signal.emit(f"[ระบบป้อนอาหาร] กำลังกินน้ำ (ช่อง 6) รอกิน {self.feed_wait_seconds:.0f} วิ...")
             self.send_game_key("6", duration=0.20)
@@ -2861,7 +2857,7 @@ class MacroWorker(QThread):
                 self.last_diamond_storage_time = now
                 self.diamond_preview_signal.emit(
                     slot_img, val, True,
-                    f"ครบ {self.diamond_interval_minutes} นาที กำลังเก็บของเข้ารถ"
+                    f"ครบ {self.diamond_interval_minutes} นาที กำลังเก็บเพชรเข้ารถ"
                 )
                 if self.execute_store_diamonds_sequence():
                     self.diamond_cycle_started_at = time.time()
@@ -4682,12 +4678,12 @@ class MainWindow(QMainWindow):
         self.auto_feed_cb = QCheckBox("ระบบกินข้าว/น้ำอัตโนมัติ")
         self.auto_feed_cb.setChecked(self.auto_feed_enabled)
         self.auto_feed_cb.toggled.connect(self.on_auto_feed_toggled)
-        self.auto_store_cb = QCheckBox("เปิดระบบเก็บของลงรถ (ปิดการใช้งาน)")
+        self.auto_store_cb = QCheckBox("เปิดระบบเก็บเพชรลงรถอัตโนมัติ (ทุก 20 นาที)")
         self.auto_store_cb.setChecked(self.auto_store_enabled)
         self.auto_store_cb.toggled.connect(self.on_auto_store_toggled)
         self.diamond_mode_combo = QComboBox()
-        self.diamond_mode_combo.addItem("มีรถ: เก็บของทุก 40 นาที", "car_timer")
-        self.diamond_mode_combo.addItem("ไม่มีรถ: เต็ม 60/60 แล้วหยุด + แจ้ง Discord", "no_car_full")
+        self.diamond_mode_combo.addItem("มีรถ: เก็บเพชรทุก 20 นาที", "car_timer")
+        self.diamond_mode_combo.addItem("ไม่มีรถ: เพชรเต็ม 60/60 แล้วหยุด + แจ้ง Discord", "no_car_full")
         mode_index = self.diamond_mode_combo.findData(self.diamond_mode)
         self.diamond_mode_combo.setCurrentIndex(max(0, mode_index))
         self.diamond_mode_combo.currentIndexChanged.connect(self.on_diamond_mode_changed)
@@ -4697,6 +4693,9 @@ class MainWindow(QMainWindow):
         self.webhook_input.setText(self.discord_webhook_url)
         self.webhook_input.editingFinished.connect(self.on_webhook_edited)
         toggle_layout.addWidget(self.auto_feed_cb)
+        toggle_layout.addWidget(self.auto_store_cb)
+        toggle_layout.addWidget(QLabel("โหมดเก็บเพชร:"))
+        toggle_layout.addWidget(self.diamond_mode_combo)
         toggle_layout.addWidget(self.webhook_input)
         config_tab_layout.addWidget(toggle_box)
 
@@ -4798,18 +4797,18 @@ class MainWindow(QMainWindow):
         create_crop_row(l_gold, "ปุ่มตกลง (กระเป๋า):", "confirm.png", "confirm")
         crops_scroll_layout.addWidget(g_gold)
         
-        g_diamond = QGroupBox("📦 หมวดไอเทมสำรอง")
+        g_diamond = QGroupBox("💎 หมวดเพชร (ตรวจนับในกระเป๋า)")
         l_diamond = QVBoxLayout(g_diamond)
-        create_crop_row(l_diamond, "รูปไอเทมสำรอง:", "diamond_icon.png", "diamond")
-        # crops_scroll_layout.addWidget(g_diamond)
+        create_crop_row(l_diamond, "รูปเพชร (กระเป๋าตัวละคร):", "diamond_icon.png", "diamond")
+        crops_scroll_layout.addWidget(g_diamond)
         
-        g_trunk = QGroupBox("🚗 หมวดเก็บลงท้ายรถ")
+        g_trunk = QGroupBox("🚗 หมวดเก็บเพชรลงท้ายรถ")
         l_trunk = QVBoxLayout(g_trunk)
-        create_crop_row(l_trunk, "รูปไอเทมท้ายรถ:", "diamond_trunk.png", "diamond_trunk")
+        create_crop_row(l_trunk, "รูปเพชร (ท้ายรถ):", "diamond_trunk.png", "diamond_trunk")
         create_crop_row(l_trunk, "ปุ่มเปิดท้ายรถ:", "trunk_ready.png", "trunk_ready")
         create_crop_row(l_trunk, "ปุ่มทั้งหมด (ท้ายรถ):", "all_trunk.png", "all_trunk")
         create_crop_row(l_trunk, "ปุ่มตกลง (ท้ายรถ):", "confirm_trunk.png", "confirm_trunk")
-        # crops_scroll_layout.addWidget(g_trunk)
+        crops_scroll_layout.addWidget(g_trunk)
         
         g_other = QGroupBox("⚙️ หมวดอื่นๆ")
         l_other = QVBoxLayout(g_other)
@@ -4905,14 +4904,14 @@ class MainWindow(QMainWindow):
         self.lbl_diamond_slot.setStyleSheet("border: 1px solid #cbd5e1; background-color: #f1f5f9;")
         diamond_layout.addWidget(self.lbl_diamond_slot)
         diamond_data_layout = QVBoxLayout()
-        self.lbl_diamond_score = QLabel("ความเหมือนรูปสำรอง: - %")
+        self.lbl_diamond_score = QLabel("ความเหมือนรูปเพชร: - %")
         self.lbl_diamond_status = QLabel("สถานะ: รอดำเนินการ")
         diamond_data_layout.addWidget(self.lbl_diamond_score)
         diamond_data_layout.addWidget(self.lbl_diamond_status)
         diamond_layout.addLayout(diamond_data_layout)
         self.preview_tabs.addTab(self.hud_tab, "พรีวิวหลอดอาหาร/น้ำ")
         self.preview_tabs.addTab(self.gold_tab, "พรีวิวสแกนทองแดง")
-        # self.preview_tabs.addTab(self.diamond_tab, "พรีวิวสแกนสำรอง")
+        self.preview_tabs.addTab(self.diamond_tab, "พรีวิวสแกนเพชร")
         right_panel.addWidget(self.preview_tabs)
 
         right_panel.addWidget(QLabel("บันทึกการทำงานของบอท:"))
@@ -5145,10 +5144,10 @@ class MainWindow(QMainWindow):
         self.all_trunk_search_region = None
         self.confirm_trunk_search_region = None
         self.hunger_limit, self.thirst_limit = 20, 20
-        self.feed_wait_seconds = 12.0
-        self.auto_feed_enabled, self.auto_store_enabled = False, True
+        self.feed_wait_seconds = 8.0
+        self.auto_feed_enabled, self.auto_store_enabled = True, True
         self.diamond_mode = "car_timer"
-        self.diamond_interval_minutes = 40
+        self.diamond_interval_minutes = 20
         self.discord_webhook_url = ""
         self.discord_bot_token = ""
         self.discord_admin_id = ""
@@ -5179,7 +5178,7 @@ class MainWindow(QMainWindow):
                     self.confirm_trunk_search_region = data.get("confirm_trunk_search_region", None)
                     self.hunger_limit = data.get("hunger_limit", 20)
                     self.thirst_limit = data.get("thirst_limit", 20)
-                    self.feed_wait_seconds = float(data.get("feed_duration", 12.0))
+                    self.feed_wait_seconds = float(data.get("feed_duration", 8.0))
                     self.worker.feed_wait_seconds = self.feed_wait_seconds
                     self.auto_feed_enabled = data.get("auto_feed_enabled", True)
                     self.auto_store_enabled = data.get("auto_store_enabled", True)
@@ -5187,7 +5186,7 @@ class MainWindow(QMainWindow):
                     self.diamond_mode = data.get("diamond_mode", "car_timer")
                     # Car storage now uses a fixed 40-minute interval. Ignore
                     # the legacy saved value so existing installations migrate.
-                    self.diamond_interval_minutes = 40
+                    self.diamond_interval_minutes = 20
                     self.reference_resolution = data.get("reference_resolution", None)
                     self.template_reference_sizes = data.get("template_reference_sizes", {})
                     self.saved_geometry = data.get("window_geometry", None)
@@ -5231,7 +5230,7 @@ class MainWindow(QMainWindow):
         default_prefix = "?" if is_beta_app else "!"
         self.discord_webhook_url = getattr(self, "discord_webhook_url", "")
         self.diamond_mode = getattr(self, "diamond_mode", "car_timer")
-        self.diamond_interval_minutes = 40
+        self.diamond_interval_minutes = 20
         self.discord_bot_token = ""
         self.discord_admin_id = ""
         self.discord_remote_enabled = False
@@ -5248,7 +5247,7 @@ class MainWindow(QMainWindow):
                 self.diamond_mode = str(
                     private_data.get("diamond_mode", self.diamond_mode)
                 )
-                self.diamond_interval_minutes = 40
+                self.diamond_interval_minutes = 20
                 self.discord_bot_token = str(private_data.get("discord_bot_token", "")).strip()
                 self.discord_admin_id = str(private_data.get("discord_admin_id", "")).strip()
                 self.discord_remote_enabled = bool(private_data.get("discord_remote_enabled", False))
